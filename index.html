@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GameCoach</title><link rel="stylesheet" href="./styles.css"></head>
+<body><main><header><div><small>YOUR PERSONAL AI ESPORTS COACH</small><h1>GameCoach<span>✦</span></h1></div><span id="data-status">加载数据…</span></header>
+<nav aria-label="模式"><button id="quick" aria-pressed="true">Quick · 快速建议</button><button id="coach" aria-pressed="false">Coach · 深入复盘</button></nav>
+<div class="layout"><section><div class="heading"><h2>Draft Builder</h2><button id="reset">清空阵容</button></div><p>选定队伍，再点击头像添加。点击已选英雄可移除。</p>
+<div class="teams"><div><button id="ally-target" aria-pressed="true">我方队伍</button><div id="ally" class="slots"></div></div><div><button id="enemy-target" aria-pressed="false">敌方队伍</button><div id="enemy" class="slots"></div></div></div>
+<label>搜索英雄<input id="search" placeholder="名称 / ID"></label><div id="champions" class="champions"></div>
+<label id="question-label">当前问题<textarea id="question" maxlength="4000" maxlength="4000" placeholder="我应该选什么辅助？"></textarea></label><div class="actions"><button id="analyze" class="primary">分析阵容</button><button id="explain">Explain Why →</button></div><p id="error" role="alert"></p><article id="result" aria-live="polite"><h2>开始选择阵容吧。</h2><p>先输入阵容。当前为演示 AI，评分不代表胜率。</p></article></section>
+<aside><h2>Player Memory</h2><p>档案与最近 100 条演示记录保存在此浏览器，不会上传。清除网站数据会删除记忆，建议导出备份。</p><form id="profile"><label>段位<input name="rank" placeholder="Diamond"></label><label>自评水平<input name="level" placeholder="如：意识较强，操作一般"></label><label>常用位置<input name="role" placeholder="support"></label><label>英雄池（英文 ID，逗号分隔）<input name="championPool" placeholder="karma,lulu"></label><label>打法与回答偏好<textarea name="preferences" placeholder="喜欢游走；先给结论"></textarea></label><button type="submit">保存档案</button><p id="profile-status" role="status"></p></form><button id="export" type="button">导出我的数据</button><button id="delete">删除本地记忆</button></aside></div><footer>Static Demo 0.2 · Wild Rift · 无需服务器 · AI 与评分均为演示</footer></main><script src="./data.js" defer></script><script src="./app.js" defer></script></body></html>
+
+
