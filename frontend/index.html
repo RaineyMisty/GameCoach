@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf9f6">
+  <title>GameCoach · 你的游戏教练</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./data.js" defer></script>
+  <script src="./storage.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-group">
+      <button class="icon-button" id="history-open" aria-label="打开对话历史" title="对话历史">☰</button>
+      <a class="brand" href="./index.html">GameCoach<span class="brand-dot"></span></a>
+      <button class="icon-button new-chat" id="new-chat" aria-label="新对话" title="新对话">＋</button>
+    </div>
+    <nav class="mode-switch" aria-label="分析模式">
+      <button id="quick" aria-pressed="true">Quick <span>快速建议</span></button>
+      <button id="coach" aria-pressed="false">Coach <span>深入讨论</span></button>
+    </nav>
+    <div class="header-actions">
+      <button class="bp-trigger" id="bp-open" aria-haspopup="dialog"><span class="bp-icon" aria-hidden="true">◈</span> BP <span id="bp-count">0/10</span></button>
+      <button class="avatar" id="account-open" aria-label="打开用户系统" aria-haspopup="dialog" title="本地用户">我</button>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <section class="conversation" id="conversation" aria-label="教练对话">
+      <div class="welcome" id="welcome">
+        <div class="coach-mark" aria-hidden="true">✦</div>
+        <p class="eyebrow">LESS GUESSING. BETTER PLAY.</p>
+        <h1>这局，我们一起想。</h1>
+        <p class="welcome-subtitle">从一个问题开始，也可以先选好双方阵容。</p>
+      </div>
+      <div id="messages" class="messages" role="log" aria-label="对话消息" aria-live="polite"></div>
+    </section>
+    <div class="composer-area">
+      <form id="chat-form" class="composer">
+        <label class="sr-only" for="question">对局问题</label>
+        <textarea id="question" rows="2" maxlength="4000" placeholder="描述你的对局，或先在右上角选择阵容…"></textarea>
+        <div class="composer-toolbar">
+          <button type="button" id="composer-bp" class="draft-chip"><span aria-hidden="true">◈</span> <span id="draft-label">添加阵容</span></button>
+          <div class="composer-right"><span id="mode-hint">简短建议，先给结论</span><button type="submit" id="send" class="send-button" aria-label="发送问题" title="发送（Enter）">↑</button></div>
+        </div>
+      </form>
+      <div class="starter-prompts" id="starter-prompts" aria-label="试试这些问题">
+        <button type="button" data-prompt="我应该如何选择辅助英雄？">选择辅助 <span>↗</span></button>
+        <button type="button" data-prompt="如何判断我方阵容的配合是否合理？">阵容配合 <span>↗</span></button>
+        <button type="button" data-prompt="帮我梳理一场对局的复盘思路。" data-mode="coach">赛后复盘 <span>↗</span></button>
+      </div>
+      <p class="page-note">Wild Rift · 本地演示 · 尚未接入真实 AI</p>
+      <p id="status" class="status" role="status"></p>
+    </div>
+  </main>
+
+  <dialog id="bp-dialog" class="drawer" aria-labelledby="bp-title">
+    <div class="drawer-header"><div><p class="eyebrow">DRAFT BUILDER</p><h2 id="bp-title">选择你的阵容</h2></div><button class="icon-button" data-close="bp-dialog" aria-label="关闭 BP">×</button></div>
+    <div class="drawer-content">
+      <p class="subtle">选定队伍后点击英雄。点击已选英雄可以移除。</p>
+      <div class="team-card"><div class="team-heading"><button id="ally-target" aria-pressed="true">我方队伍</button><span id="ally-count">0 / 5</span></div><div id="ally" class="slots"></div></div>
+      <div class="team-card enemy-card"><div class="team-heading"><button id="enemy-target" aria-pressed="false">敌方队伍</button><span id="enemy-count">0 / 5</span></div><div id="enemy" class="slots"></div></div>
+      <label class="search-label" for="search">搜索英雄</label><input id="search" class="search-input" placeholder="英雄名称 / 英文 ID" autocomplete="off">
+      <div id="champions" class="champions"></div>
+      <p class="fine-print">12 个演示英雄 · 占位头像 · 未模拟禁用和选人顺序</p>
+    </div>
+    <div class="drawer-footer"><button id="reset" class="text-button">清空阵容</button><button class="primary-button" data-close="bp-dialog">完成选择</button></div>
+  </dialog>
+
+  <dialog id="account-dialog" class="drawer account-drawer" aria-labelledby="account-title">
+    <div class="drawer-header"><div><p class="eyebrow">YOUR SPACE</p><h2 id="account-title">我的用户</h2></div><button class="icon-button" data-close="account-dialog" aria-label="关闭用户系统">×</button></div>
+    <div class="drawer-content">
+      <div class="user-summary"><span class="avatar large-avatar" id="account-avatar">我</span><div><h3 id="account-name"></h3><p>本地用户 · 独立资料与对话</p></div></div>
+      <section class="settings-section"><h3>切换用户</h3><div id="user-list" class="user-list"></div>
+        <form id="create-user" class="inline-form"><label class="sr-only" for="new-username">新用户昵称</label><input id="new-username" maxlength="24" placeholder="新用户昵称" required autocomplete="off"><button type="submit" class="secondary-button">创建</button></form>
+        <p class="fine-print">这是本机用户配置，不是在线账号或密码登录。</p>
+      </section>
+      <section class="settings-section"><h3>玩家资料</h3><form id="profile">
+        <div class="form-row"><label>段位<input name="rank" maxlength="100" placeholder="例如：Diamond"></label><label>常用位置<select name="role"><option value="support">辅助</option><option value="top">上路</option><option value="jungle">打野</option><option value="mid">中路</option><option value="adc">射手</option><option value="other">其他</option></select></label></div>
+        <label>自评水平<input name="level" maxlength="1000" placeholder="例如：意识较强，操作一般"></label>
+        <label>英雄池<input name="championPool" maxlength="1000" placeholder="英雄名称或 ID，用逗号分隔"></label>
+        <label>打法与回答偏好<textarea name="preferences" maxlength="1000" rows="3" placeholder="喜欢游走，希望先给结论…"></textarea></label>
+        <button type="submit" class="primary-button">保存资料</button><p id="profile-status" class="form-status" role="status"></p>
+      </form></section>
+      <section class="settings-section"><h3>本地数据</h3><p id="folder-status" class="subtle">当前保存在此浏览器。</p><button id="connect-folder" class="secondary-button">连接本地用户文件夹</button>
+        <p class="fine-print">选择项目的 users 文件夹后，每个用户会保存为独立 JSON 文件。文件保留在电脑上，不会上传。刷新页面后需重新连接目录。</p>
+        <div class="data-actions"><button id="export-user" class="text-button">导出当前用户</button><label class="text-button file-label">导入用户备份<input type="file" id="import-user" accept=".json,application/json" class="sr-only"></label></div>
+        <p id="account-status" class="form-status" role="status"></p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="history-dialog" class="drawer history-drawer" aria-labelledby="history-title">
+    <div class="drawer-header"><div><p class="eyebrow">RECENT CONVERSATIONS</p><h2 id="history-title">对话历史</h2></div><button class="icon-button" data-close="history-dialog" aria-label="关闭对话历史">×</button></div>
+    <div class="drawer-content"><button id="history-new" class="secondary-button wide-button">＋ 开始新对话</button><div id="history-list" class="history-list"></div><p class="fine-print">每位用户保留最近 30 个对话。</p></div>
+  </dialog>
+</body>
+</html>
