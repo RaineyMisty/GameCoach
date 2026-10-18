@@ -63,15 +63,27 @@ for (const prompt of document.querySelectorAll('[data-prompt]')) prompt.onclick 
   $('#question').value = prompt.dataset.prompt; state.question = prompt.dataset.prompt; resizeInput(); $('#question').focus();
 };
 const currentSession = () => store.current().sessions.find(s => s.id === state.sessionId);
-function draftDescription(draft) {
-  const names = side => draft[side].map(id => champions.get(id)?.name).filter(Boolean).join('、') || '未选择';
-  return `我方：${names('ally')} · 敌方：${names('enemy')}`;
+function messageDraftElement(draft) {
+  const names = ids => (ids || []).map(id => champions.get(id)?.name).filter(Boolean).join('、');
+  const teams = ['ally', 'enemy'].map(side => ({ side, picks: names(draft?.[side]),
+    bans: draft?.bpMode ? names(draft.bans?.[side]?.slice(0, draftOps.banLimit(draft))) : '' }));
+  if (!teams.some(team => team.picks || team.bans)) return null;
+  const metadata = element('div', 'message-draft'); metadata.setAttribute('role', 'group'); metadata.setAttribute('aria-label', '本条消息的阵容');
+  for (const { side, picks, bans } of teams) {
+    const row = element('div', 'message-draft-row message-draft-' + side);
+    row.setAttribute('role', 'group'); row.setAttribute('aria-label', side === 'ally' ? '蓝方阵容' : '红方阵容');
+    if (bans) { const banned = element('span', 'message-draft-bans', bans); banned.setAttribute('aria-label', '禁用：' + bans); row.append(banned); }
+    if (picks) { const selected = element('span', 'message-draft-picks', picks); selected.setAttribute('aria-label', '已选：' + picks); row.append(selected); }
+    if (!bans && !picks) { const empty = element('span', 'message-draft-empty', '—'); empty.setAttribute('aria-label', '未选择'); row.append(empty); }
+    metadata.append(row);
+  }
+  return metadata;
 }
 function messageElement(message) {
   const wrapper = element('article', 'message message-' + message.role);
   if (message.role === 'user') {
     wrapper.append(element('p', 'user-bubble', message.content));
-    if (draftOps.count(message.draft)) wrapper.append(element('p', 'message-meta', draftDescription(message.draft)));
+    const lineup = messageDraftElement(message.draft); if (lineup) wrapper.append(lineup);
     return wrapper;
   }
   wrapper.append(element('span', 'message-logo', '✦'));
