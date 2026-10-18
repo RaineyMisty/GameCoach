@@ -2,6 +2,8 @@
 
 HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地演示和 Gemini 真实问答；打开网页无需 Node.js、npm 或构建。
 
+长期愿景、Skill 输入与输出设计、视觉与实时分析规划见 [Product Vision & Skill Architecture](./readme-vision.md)。该文档明确区分当前能力与待实现目标。
+
 ## 目录
 
 ```text
@@ -16,6 +18,7 @@ GameCoach/
 ├── .gitignore
 ├── .nojekyll
 ├── README.md
+├── readme-vision.md  # 长期愿景、Skill 架构与分阶段验收目标
 └── LICENSE
 ```
 
