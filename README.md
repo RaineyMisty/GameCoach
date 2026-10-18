@@ -29,6 +29,8 @@ GitHub Pages 保持 **Deploy from a branch → main → /(root)**。根目录的
 - 右上角 BP 打开选人面板。阵容会随每条消息保存，不会因后来修改而改变旧消息。
 - 点击头像创建或切换本地用户。每个用户有独立玩家资料、阵容和最近 30 个对话，每个对话最多 100 条消息。
 - 左上角打开历史或开始新对话。
+- 顶部导航在滚动长对话时保持可见；模式切换、BP、用户和历史入口均留在顶部。
+- AI 回复支持 Markdown 标题、加粗、斜体、列表、引用、代码块、链接和表格，流式生成时同步渲染；旧聊天重新打开也会按 Markdown 显示，原始文本保留在本地备份。用户输入仍按原文显示。
 
 ## 接入 Gemini（用户自己的 Key，无 Backend）
 
@@ -78,6 +80,10 @@ Quick / Coach 硬切换 AI-Core 的调用配置：demo-instant / none / 128 输�
 回复支持逐段显示和停止。生成时切换模式、用户、对话会取消原请求；切换模式保留同一对话，下一条请求使用新配置。历史保存在本机，每次调用带最近 20 条有效历史消息。失败或停止的 AI 回复不会作为后续 AI 历史发送。
 
 Gemini 通过 AI-Core/gemini.js 的 provider 适配器接入。当前保留用户自带 Key 的纯静态方案，Back-End 继续占位。当前代码不包含真实 API 密钥。接口详见 AI-Core/README.md 与 Skill/README.md。
+
+Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线可用，不请求 CDN。模型内容先经过 HTML 清理，代码片段以文字显示；表格和代码块在自身区域横向滚动。
+
+浏览器验证：打开 tests/markdown.html 可运行 Markdown 格式、流式片段与 HTML 安全过滤检查，无需 API Key。
 
 开发验证（仅测试需要 Node.js，打开网页不需要）：`node --test tests/*.test.cjs`。
 

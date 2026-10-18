@@ -112,7 +112,9 @@ function messageElement(message) {
   const body = element('div', 'reply-body');
   const label = message.status === 'pending' ? '生成中' : message.status === 'cancelled' ? '已停止' : message.status === 'error' ? '调用失败' : message.isDemo !== false ? '演示回复' : 'AI 回复';
   const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', label)); body.append(heading);
-  body.append(element('p', 'reply-text', message.content || (message.status === 'pending' ? '正在生成…' : message.status === 'cancelled' ? '已停止生成。' : '没有回复内容。')));
+  const text = element('div', 'reply-text');
+  window.GameCoachMarkdown.renderInto(text, message.content || (message.status === 'pending' ? '正在生成…' : message.status === 'cancelled' ? '已停止生成。' : '没有回复内容。'));
+  body.append(text);
   if (message.finishReason === 'length') body.append(element('p', 'message-meta', '已达到本次生成上限，可以继续追问。'));
   if (message.mode === 'quick' && (!message.status || message.status === 'complete')) {
     const actions = element('div', 'reply-actions');
@@ -132,6 +134,7 @@ function cancelRequest() {
   const request = activeRequest;
   if (!request) return;
   activeRequest = null;
+  cancelAnimationFrame(request.renderFrame);
   request.controller.abort();
   request.reply.status = 'cancelled';
   if (!request.reply.content) request.reply.content = '已停止生成。';
@@ -159,7 +162,7 @@ async function send(override) {
   session.messages.push({ role: 'user', content: input.at(-1).content, mode, draft, created });
   const reply = { id: 'reply-' + store.uuid(), role: 'coach', content: '', mode, draft: structuredClone(draft), created, status: 'pending' };
   session.messages.push(reply);
-  const request = { controller: new AbortController(), reply, userId: store.current().id, sessionId: session.id };
+  const request = { controller: new AbortController(), renderFrame: 0, reply, userId: store.current().id, sessionId: session.id };
   activeRequest = request;
   store.persist(); $('#question').value = ''; state.question = ''; resizeInput(); renderConversation();
   requestAnimationFrame(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); $('#question').focus({ preventScroll: true }); });
@@ -169,11 +172,16 @@ async function send(override) {
       context, mode, signal: request.controller.signal,
       onDelta(delta) {
         if (!isCurrent()) return;
-        const follow = window.scrollY + window.innerHeight >= document.body.scrollHeight - 140;
         reply.content += delta;
-        const text = document.getElementById(reply.id)?.querySelector('.reply-text');
-        if (text) text.textContent = reply.content;
-        if (follow) window.scrollTo({ top: document.body.scrollHeight });
+        if (request.renderFrame) return;
+        request.renderFrame = requestAnimationFrame(() => {
+          request.renderFrame = 0;
+          if (!isCurrent()) return;
+          const follow = window.scrollY + window.innerHeight >= document.body.scrollHeight - 140;
+          const text = document.getElementById(reply.id)?.querySelector('.reply-text');
+          if (text) window.GameCoachMarkdown.renderInto(text, reply.content);
+          if (follow) window.scrollTo({ top: document.body.scrollHeight });
+        });
       },
     });
     if (!isCurrent()) return;
@@ -185,6 +193,7 @@ async function send(override) {
     reply.status = error.name === 'AbortError' ? 'cancelled' : 'error';
     reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? '已停止生成。' : '生成失败：' + error.message);
   } finally {
+    cancelAnimationFrame(request.renderFrame);
     if (isCurrent()) {
       activeRequest = null; session.messages = session.messages.slice(-100);
       store.persist(); resizeInput(); renderConversation();

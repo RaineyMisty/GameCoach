@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GameCoach Markdown 检查</title>
+  <link rel="stylesheet" href="../frontend/styles.css">
+  <script src="../frontend/vendor/marked.umd.js" defer></script>
+  <script src="../frontend/vendor/purify.min.js" defer></script>
+  <script src="../frontend/markdown.js" defer></script>
+  <script src="./markdown.browser.js" defer></script>
+  <style>
+    main { max-width: 780px; margin: 40px auto; padding: 0 24px; }
+    h1 { font-size: 24px; } #summary { margin: 18px 0; font-weight: 600; }
+    #results { padding-left: 22px; line-height: 2; } [data-pass="true"] { color: #2c654e; }
+    [data-pass="false"] { color: #a12828; } #sample { margin-top: 28px; padding: 24px; border: 1px solid #ddd; border-radius: 16px; }
+  </style>
+</head>
+<body><main>
+  <h1>GameCoach Markdown 检查</h1>
+  <p id="summary" role="status">检查中…</p>
+  <ol id="results"></ol>
+  <div id="sample" class="reply-text"></div>
+</main></body>
+</html>
