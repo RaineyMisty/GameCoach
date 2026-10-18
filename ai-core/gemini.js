@@ -82,7 +82,7 @@ window.GameCoachGemini = (() => {
     const secret = apiKey;
     if (!secret) throw new Error('请先打开“AI 连接”，填写 Gemini API Key 并启用。');
     const supported = model === models.quick ? ['minimal', 'low', 'medium', 'high'] : model === models.coach ? ['low', 'medium', 'high'] : [];
-    if (!supported.includes(reasoningEffort)) throw new Error('当前 Gemini 模型或思考档位不受支持，请检查 AI-Core/gemini.js 配置。');
+    if (!supported.includes(reasoningEffort)) throw new Error('当前 Gemini 模型或思考档位不受支持，请检查 ai-core/gemini.js 配置。');
     if (signal.aborted) throw aborted();
     const response = await request(`/models/${model}:streamGenerateContent?alt=sse`, {
       method: 'POST', signal,

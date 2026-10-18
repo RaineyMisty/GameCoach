@@ -1,4 +1,4 @@
-# AI-Core
+# ai-core
 
 通用模型调用层，不读取阵容、用户文件或页面 DOM。Skill 传入普通文本或消息列表；Quick / Coach 是独立执行选项。
 

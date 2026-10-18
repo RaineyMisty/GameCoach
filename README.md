@@ -7,9 +7,9 @@ HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地�
 ```text
 GameCoach/
 ├── frontend/        # 全部页面、样式与前端脚本
-├── Skill/           # 占位 Skill：请求和流式回复原样转交
-├── AI-Core/         # 通用模型调用、执行模式、取消和超时
-├── Back-End/        # 仅目录说明，本阶段不实现后端
+├── skill/           # 占位 Skill：请求和流式回复原样转交
+├── ai-core/         # 通用模型调用、执行模式、取消和超时
+├── back-end/        # 仅目录说明，本阶段不实现后端
 ├── tests/           # 模块边界、流式回复和存储兼容性测试
 ├── users/           # 本地用户文件，整个目录由 Git 忽略
 ├── index.html       # GitHub Pages 的轻量跳转入口
@@ -54,12 +54,12 @@ Skill 仍是占位：BP 和玩家资料尚未自动发送给模型。需要询�
 
 - 400 / API Key 无效：重新从 AI Studio 复制 Gemini Key，不要使用旧的其他平台 Key；检查项目是否满足免费档或计费要求。
 - 403：检查地区、项目权限及 Key 的 API / 网站来源限制。如果设置网站限制，请允许自己的 GitHub Pages 域名；file:// 没有普通网站来源，可能需要从 HTTPS 页面测试。
-- 404：检查 AI-Core/gemini.js 中的 models 和当前项目开放的型号。
+- 404：检查 ai-core/gemini.js 中的 models 和当前项目开放的型号。
 - 429：免费额度耗尽、项目没有可用额度或调用频率过高，去 AI Studio 查看配额；应用不会自动重试、切换平台或替你开通付费。
 - 无法连接：检查网络；浏览器限制本地文件请求时，使用编辑器本地预览或 GitHub Pages 的 HTTPS 地址。
 - 达到生成上限：页面标注截断，可继续追问；若思考消耗完额度而没有答案，缩短问题或改用 Quick。
 
-当前只使用无服务端会话的 generateContent 流式接口，不创建 Google 服务端聊天会话、数据库或 Backend。模型和思考档位集中在 AI-Core/gemini.js 中。依据：[API Key](https://ai.google.dev/gemini-api/docs/api-key)、[思考配置](https://ai.google.dev/gemini-api/docs/thinking)、[REST 接口](https://ai.google.dev/api/generate-content)、[免费档与价格](https://ai.google.dev/gemini-api/docs/pricing)。
+当前只使用无服务端会话的 generateContent 流式接口，不创建 Google 服务端聊天会话、数据库或 Backend。模型和思考档位集中在 ai-core/gemini.js 中。依据：[API Key](https://ai.google.dev/gemini-api/docs/api-key)、[思考配置](https://ai.google.dev/gemini-api/docs/thinking)、[REST 接口](https://ai.google.dev/api/generate-content)、[免费档与价格](https://ai.google.dev/gemini-api/docs/pricing)。
 
 ## 本地用户文件夹
 
@@ -75,15 +75,15 @@ users 目录已在 .gitignore 中整体排除。本地目录是空目录时 Git 
 
 ## 演示边界
 
-未启用 Gemini 时，AI-Core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。手游英雄名单来自手游官网 2026-10-18 快照，共 142 位；端游英雄名单、中文名称与共用头像来自 Riot Data Dragon 16.20.1，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
+未启用 Gemini 时，ai-core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。手游英雄名单来自手游官网 2026-10-18 快照，共 142 位；端游英雄名单、中文名称与共用头像来自 Riot Data Dragon 16.20.1，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
 
-调用链为 Front-End → Skill → AI-Core → Skill → Front-End。Skill 暂时原样透传，预留补充资料和整理回复的位置；阵容和用户资料只传给 Skill 的 context，占位版暂不使用。AI-Core 接受通用文本或消息列表，不要求游戏专用字段。
+调用链为 Front-End → Skill → ai-core → Skill → Front-End。Skill 暂时原样透传，预留补充资料和整理回复的位置；阵容和用户资料只传给 Skill 的 context，占位版暂不使用。ai-core 接受通用文本或消息列表，不要求游戏专用字段。
 
-Quick / Coach 硬切换 AI-Core 的调用配置：demo-instant / none / 128 输出额度，以及 demo-reasoning / medium / 1024 输出额度。并非仅在提示词中要求简短或详细。演示 provider 不模拟真实推理或 token 计费，也不能用它衡量真实模型延迟。接真实 provider 时需根据模型实际支持的参数映射执行配置。
+Quick / Coach 硬切换 ai-core 的调用配置：demo-instant / none / 128 输出额度，以及 demo-reasoning / medium / 1024 输出额度。并非仅在提示词中要求简短或详细。演示 provider 不模拟真实推理或 token 计费，也不能用它衡量真实模型延迟。接真实 provider 时需根据模型实际支持的参数映射执行配置。
 
 回复支持逐段显示和停止。生成时切换模式、用户、对话会取消原请求；切换模式保留同一对话，下一条请求使用新配置。历史保存在本机，每次调用带最近 20 条有效历史消息。失败或停止的 AI 回复不会作为后续 AI 历史发送。
 
-Gemini 通过 AI-Core/gemini.js 的 provider 适配器接入。当前保留用户自带 Key 的纯静态方案，Back-End 继续占位。当前代码不包含真实 API 密钥。接口详见 AI-Core/README.md 与 Skill/README.md。
+Gemini 通过 ai-core/gemini.js 的 provider 适配器接入。当前保留用户自带 Key 的纯静态方案，back-end 继续占位。当前代码不包含真实 API 密钥。接口详见 ai-core/README.md 与 skill/README.md。
 
 Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线可用，不请求 CDN。模型内容先经过 HTML 清理，代码片段以文字显示；表格和代码块在自身区域横向滚动。
 

@@ -8,7 +8,7 @@ const TEST_KEY = 'test-credential-not-a-real-api-key';
 function setup(fetch) {
   const context = { window: {}, fetch, setTimeout, clearTimeout, AbortController, DOMException, structuredClone, TextDecoder, performance };
   vm.createContext(context);
-  for (const file of ['AI-Core/index.js', 'AI-Core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  for (const file of ['ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   return { ai: context.window.GameCoachAI, gemini: context.window.GameCoachGemini };
 }
 function event(text, finishReason) { return { candidates: [{ index: 0, content: { parts: text === undefined ? [] : [{ text }] }, ...(finishReason ? { finishReason } : {}) }] }; }
@@ -168,7 +168,7 @@ test('invalid message shapes and unsupported thinking settings fail before netwo
 });
 
 test('credentials have no storage path or getter and reload starts in demo', () => {
-  const source = fs.readFileSync(path.join(root, 'AI-Core/gemini.js'), 'utf8') + fs.readFileSync(path.join(root, 'frontend/ai-settings.js'), 'utf8');
+  const source = fs.readFileSync(path.join(root, 'ai-core/gemini.js'), 'utf8') + fs.readFileSync(path.join(root, 'frontend/ai-settings.js'), 'utf8');
   assert.ok(!/localStorage|sessionStorage|GCStore/.test(source.replace(/\/\/[^\n]*/g, '')));
   const first = setup(async () => { throw new Error('unused'); }); first.gemini.activate(TEST_KEY); assert.ok(!JSON.stringify(first.gemini).includes(TEST_KEY));
   const reloaded = setup(async () => { throw new Error('unused'); }); assert.equal(reloaded.gemini.isConfigured(), false); assert.equal(reloaded.ai.getProviderName(), 'demo');

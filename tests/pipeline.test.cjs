@@ -10,7 +10,7 @@ function setup(seed = {}) {
   const context = { window: {}, setTimeout, clearTimeout, AbortController, DOMException, performance, structuredClone, crypto,
     localStorage: { getItem: k => saved.get(k) ?? null, setItem: (k, v) => saved.set(k, v) } };
   vm.createContext(context);
-  for (const file of ['AI-Core/index.js', 'Skill/index.js', 'frontend/draft.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  for (const file of ['ai-core/index.js', 'skill/index.js', 'frontend/draft.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   return { core: context.window.GameCoachAI, skill: context.window.GameCoachSkill, context, saved };
 }
 test('Quick and Coach choose different execution settings, not prompt instructions', async () => {
