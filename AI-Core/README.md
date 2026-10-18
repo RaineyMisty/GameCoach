@@ -1,29 +1,26 @@
 # AI-Core
 
-通用模型调用层，不读取游戏阵容、用户文件或页面 DOM。Skill 传入普通文本或消息列表；Quick / Coach 作为独立执行选项传入，不拼进提示词。
+通用模型调用层，不读取阵容、用户文件或页面 DOM。Skill 传入普通文本或消息列表；Quick / Coach 是独立执行选项。
 
-```js
-const result = await GameCoachAI.call(messages, {
-  mode: 'quick',
-  signal: abortController.signal,
-  onDelta: text => { /* 立即显示新增文本 */ },
-});
-```
+`GameCoachAI.call(input, { mode: 'quick', signal, onDelta })` 返回 content、mode、provider、model、isDemo、reasoningEffort、finishReason 和 timings。`registerProvider(name, { isDemo, generate })` 注册适配器；generate 接收 input、model、reasoningEffort、maxOutputTokens、timeoutMs、instructions、signal、onDelta，返回 `{ content, finishReason? }`。最终文本必须和已发送片段一致。
 
-默认是 demo provider；groq.js 额外注册真实 Groq provider。在前端 AI 连接面板填入用户自己的密钥后，通过 GameCoachGroq.activate(key) 启用。密钥仅在 groq.js 闭包内存中，没有 getter，不进入本地用户存储或导出文件。
+默认 provider 为 demo。gemini.js 注册 Gemini provider；`GameCoachGemini.activate(key)` 启用，`disconnect()` 清除当前页面 Key 并恢复 demo，`isConfigured()` 返回是否已填入 Key。输入校验接受新版 AQ. auth key、旧版 AIza key 及其可打印 ASCII 内容，不限定固定前缀；仅检查基本长度、引号、空白和控制字符，真实性交给官方接口。没有密钥 getter；Key 不进入本地用户、导出文件、URL 或浏览器应用存储。
 
-Groq 模式：Quick 为 qwen/qwen3.8-27b / none / 256 生成 token / 10 秒超时；Coach 为同型号 / medium / 4096 生成 token / 60 秒超时。reasoning_format=hidden 只隐藏内部推理，真正关闭推理依靠 Quick 的 reasoning_effort=none。两档有通用的输出表达要求（例如先给结论），不包含游戏专用字段，且独立于真实执行参数。
+| 模式 | 模型 | 思考档 | 生成额度 | 超时 |
+| --- | --- | --- | --- | --- |
+| Quick | gemini-3.5-flash-lite | MINIMAL | 512 | 10 秒 |
+| Coach | gemini-3.8-flash | MEDIUM | 4096 | 60 秒 |
 
-GameCoachGroq.testConnection() 通过 GET /models 检查密钥和模型权限，不生成回复。disconnect() 清除密钥并恢复 demo 配置。连接配置不随用户资料保存；刷新后回到 demo。
+模型定义在 gemini.js 的 models 中，实际执行参数在 activate 中。MINIMAL 是最低思考档，并不承诺零思考；includeThoughts=false 只控制输出，不负责减少思考。两档切换改变真实模型及 thinkingLevel，表达要求另外作为 systemInstruction 传入。生成额度也包含思考消耗。
 
-适配器直接 fetch Groq 官方 HTTPS 地址，拒绝重定向，不携带浏览器 cookies，不支持自定义密钥目的地址。它支持 SSE 流分段和 UTF-8 边界、隐藏 reasoning 字段、正常结束标记、生成额度截断、取消和状态码错误。没有自动重试或付费模型回退。
+使用 Google 官方固定 HTTPS 地址，通过 x-goog-api-key 请求头认证，不在 URL 查询参数里带 Key，不携带 cookies，不跟随重定向。调用 `models/<model>:streamGenerateContent?alt=sse`，不创建远端会话；上下文每次由调用者提供。
 
-`registerProvider(name, { isDemo, async generate(request) })` 注册适配器。适配器接收 `input, model, reasoningEffort, maxOutputTokens, timeoutMs, instructions, signal, onDelta`，返回 `{ content, finishReason? }`，并在生成时调用 `onDelta(新增文本)`。未流式返回时核心会一次性发送最终文本。返回内容必须与已发送片段一致。
+输入支持字符串或 system / developer / user / assistant 消息；系统内容合并为 systemInstruction，assistant 转为 model，连续同角色消息合并。内容片段支持 text、input_text、Gemini 原生 inlineData / fileData 和 image_url 的 base64 图片。当前网页仍只有文字输入。未知片段明确报错，不静默丢弃。
 
-`configure({ provider, modes: { quick: {...}, coach: {...} } })` 选择 provider 并配置两档模型、推理强度、输出额度和超时。设置在每次请求开始时固定，切换模式影响下一次调用；适配器负责映射和校验供应商支持的参数、执行输出额度以及实现实际流式请求。不能假设每个模型都支持 none 或相同的预算参数。
+SSE 处理任意字节分片、UTF-8、CRLF / LF / CR、注释、多行 data。只输出非 thought 文本，依靠 Gemini 的 STOP / MAX_TOKENS 判断结束，不要求 OpenAI 的 [DONE]。MAX_TOKENS 映射为 finishReason=length；缺少结束状态、被拦截、异常停止、空回答均报错，不把不完整内容标为成功。取消和超时由核心传递至 fetch；没有自动重试或其他平台回退。
 
-核心支持取消、超时、输出检查和首段文本 / 总耗时记录。首段文本不等同于首个有效建议，真实模型接入后需另外评测推荐答案出现的时间。
+`GameCoachGemini.testConnection()` 通过两个 GET models/<model> 检查密钥与模型元信息，核实 generateContent 能力；不生成内容，不能证明生成配额或计费状态正常。须发送一条消息验证真实回答。`models` 是只读公开配置，不含凭证。
 
-后端尚未实现。以后接云端模型时，通过后端代理保护 API 密钥；不要把密钥写入网页或公开仓库。
+API Key / HTTP 错误不回显原始服务器文本，避免上游信息包含 Key。所有凭证仅用于用户自己的浏览器页面，不实现共享服务密钥或 Backend。刷新恢复 demo；用户资料和聊天保留。测试模拟官方响应，不声称无 Key 时完成真实推理验证。
 
-目前只提供“用户自带密钥”的浏览器开发方式。已验证 Groq 的匿名 OPTIONS 预检允许 Origin: null 和 authorization/content-type 请求头，但实际连接仍受浏览器、网络及账号权限影响。没有真实密钥时，只能完成模拟接口测试，不能声称已通过真实推理测试。
+参考：[Gemini REST](https://ai.google.dev/api/generate-content)、[模型](https://ai.google.dev/gemini-api/docs/models)、[思考档](https://ai.google.dev/gemini-api/docs/thinking)。

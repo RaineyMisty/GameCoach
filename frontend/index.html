@@ -9,7 +9,7 @@
   <script src="./data.js" defer></script>
   <script src="./storage.js" defer></script>
   <script src="../AI-Core/index.js" defer></script>
-  <script src="../AI-Core/groq.js" defer></script>
+  <script src="../AI-Core/gemini.js" defer></script>
   <script src="../Skill/index.js" defer></script>
   <script src="./ai-settings.js" defer></script>
   <script src="./app.js" defer></script>
@@ -80,11 +80,12 @@
       <section class="settings-section" id="ai-connection-section"><h3>AI 连接 <span id="ai-state" class="connection-badge">演示模式</span></h3>
         <p id="ai-connection-status" class="subtle"></p>
         <form id="ai-connection-form" autocomplete="off">
-          <label for="groq-api-key">Groq API Key<input id="groq-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴你自己的 API Key" required></label>
-          <button type="submit" class="primary-button">启用 Groq</button>
+          <label for="gemini-api-key">Gemini API Key<input id="gemini-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴你自己的 API Key" required></label>
+          <button type="submit" class="primary-button">启用 Gemini</button>
         </form>
-        <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开并清除密钥</button><a class="text-button" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">申请 API Key ↗</a></div>
-        <p class="fine-print">仅供使用自己密钥的开发测试。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题及相关对话会发送给 Groq。Skill 当前仍为占位，BP 和玩家资料尚未自动加入模型输入。</p>
+        <p class="fine-print" id="ai-key-help">支持新版 AQ.… 和旧版 AIza… 密钥。请在 AI Studio 点击复制按钮，粘贴完整值。</p>
+        <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开并清除密钥</button><a class="text-button" href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">在 Google AI Studio 申请 Key ↗</a></div>
+        <p class="fine-print">使用你自己的 Gemini API Key 连接。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题及相关对话会发送给 Google Gemini。Skill 当前仍为占位，BP 和玩家资料尚未自动加入模型输入。</p>
         <p id="ai-feedback" class="form-status" role="status"></p>
       </section>
       <section class="settings-section"><h3>切换用户</h3><div id="user-list" class="user-list"></div>

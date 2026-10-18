@@ -1,6 +1,6 @@
 # GameCoach
 
-HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地演示和 Groq 真实问答；打开网页无需 Node.js、npm 或构建。
+HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地演示和 Gemini 真实问答；打开网页无需 Node.js、npm 或构建。
 
 ## 目录
 
@@ -30,30 +30,30 @@ GitHub Pages 保持 **Deploy from a branch → main → /(root)**。根目录的
 - 点击头像创建或切换本地用户。每个用户有独立玩家资料、阵容和最近 30 个对话，每个对话最多 100 条消息。
 - 左上角打开历史或开始新对话。
 
-## 接入 Groq（本地开发）
+## 接入 Gemini（用户自己的 Key，无 Backend）
 
-1. 打开 https://console.groq.com/keys ，注册 / 登录并创建自己的 API Key。个人试用可保持 Free Plan，不需要升级为付费计划。
-2. 在本机双击根目录 index.html（或 frontend/index.html）。推荐使用 Chrome / Edge。
-3. 点击输入框下方“连接 AI”，或点击头像找到“AI 连接”。将密钥粘贴到密码输入框，点击“启用 Groq”。密钥只保留在当前页面内存中，提交后输入框会清空。
-4. 可点击“测试连接”验证密钥和模型列表，此操作不生成聊天回复。关闭面板，输入“你好，请用一句话回答”，发送后应看到“AI 回复”，不再是“演示回复”。
-5. Quick 使用 qwen/qwen3.8-27b、reasoning_effort=none、最多 256 生成 token；Coach 使用同一模型、reasoning_effort=medium、最多 4096 生成 token。两档均流式显示。生成 token 预算也要给推理留空间，Coach 不应照搬 Quick 的小额度。
-6. 切换模式会停止正在生成的回复，下一次发送使用新模式；同一聊天保留上下文。点击发送按钮变成的停止按钮，也可以停止生成。
-7. 刷新 / 关闭网页会清除内存中的密钥，需重新填写；“断开并清除密钥”可立即切回演示。浏览器自己的密码管理行为不由应用控制。
+1. 打开 [Google AI Studio](https://aistudio.google.com/)，使用 Google 账号登录，然后进入 [API Keys](https://aistudio.google.com/api-keys) 创建或复制 Gemini API Key。模型、免费额度和地区可用性以自己的项目控制台为准；不需要为了试用主动开启付费。
+2. 打开 GameCoach：本地双击根目录 index.html 或 frontend/index.html；线上打开自己部署的 GitHub Pages 地址。
+3. 点击输入框下方“连接 AI”，或点击头像找到“AI 连接”。粘贴 Gemini API Key，点击“启用 Gemini”。提交后输入框会清空；启用只切换配置，并不代表密钥已经验证。
+4. 点击“测试连接”检查密钥能否读取 Quick、Coach 两个模型的元信息。这个检查不生成回复，也不能保证剩余额度；关闭侧栏，新建对话并发送“你好，请用一句话介绍自己”，验证实际生成。成功的回复显示“AI 回复”。
+5. Quick 使用 gemini-3.5-flash-lite、thinkingLevel=MINIMAL、最多 512 个生成 token、10 秒超时；Coach 使用 gemini-3.8-flash、thinkingLevel=MEDIUM、最多 4096 个生成 token、60 秒超时。Quick 的最低思考档不等于完全关闭思考，也不能保证固定延迟；生成额度包含思考消耗。两档都流式显示答案，不显示思考内容。
+6. 在同一个聊天中切换 Quick / Coach，历史继续保留；切换会停止正在生成的请求，下一条使用新配置。也可点击发送按钮变成的停止按钮。
+7. Key 只保存在当前页面内存，刷新 / 关闭网页后需重新填写；“断开并清除密钥”立即恢复本地演示。Key 不写进代码、浏览器应用存储、用户 JSON 或导出文件。不要把 Key 发到聊天里或提交 GitHub。浏览器自己的密码管理行为不由应用控制。
 
-这一步只验证真实模型调用，Skill 仍占位：BP 和玩家资料尚未自动发送给模型。需要询问阵容时，先把阵容写进问题。最近 20 条有效历史消息随下一次请求发送，聊天备份仍保存在本机。
+Skill 仍是占位：BP 和玩家资料尚未自动发送给模型。需要询问阵容时，先把阵容写进问题。每次请求发送最近 20 条有效历史消息及当前问题；本地保存不代表模型在本地运行，发问时这些内容会发送到 Google Gemini。免费档的数据处理方式见 Google 的服务条款，避免发送敏感个人信息。
 
 常见问题：
 
-- 401：Key 无效或被撤销，重新填写。
-- 403：账号、地区或模型访问权限受限，检查 Groq 控制台。
-- 404：预览模型可能被替换，检查 AI-Core/groq.js 中的 model。
-- 429：触及免费额度或请求限流，等待控制台额度恢复；应用不会自动重试或切换到付费模型。
-- 网络 / 跨域问题：检查网络。若浏览器阻止 file:// 请求，可用编辑器的本地网页预览，或自己上传后通过 HTTPS 打开。不需要修改系统环境变量。
-- 回复达到生成上限：页面会提示继续追问；若 Coach 思考预算用尽而没有答案，改用 Quick 或缩短问题。
+- 密钥外观：Google AI Studio 新版密钥可以 AQ. 开头，旧版常见 AIza 开头；不要根据固定长度判断真假。使用复制按钮取得完整值，不要复制列表里的掩码、名称或项目 ID。网页只做基本输入检查，密钥有效性由 Google 接口验证。
 
-模型目前为预览型号，实际权限和免费额度以账号控制台为准。参数依据：https://console.groq.com/docs/api-reference 和 https://console.groq.com/docs/model/qwen/qwen3.8-27b 。
+- 400 / API Key 无效：重新从 AI Studio 复制 Gemini Key，不要使用旧的其他平台 Key；检查项目是否满足免费档或计费要求。
+- 403：检查地区、项目权限及 Key 的 API / 网站来源限制。如果设置网站限制，请允许自己的 GitHub Pages 域名；file:// 没有普通网站来源，可能需要从 HTTPS 页面测试。
+- 404：检查 AI-Core/gemini.js 中的 models 和当前项目开放的型号。
+- 429：免费额度耗尽、项目没有可用额度或调用频率过高，去 AI Studio 查看配额；应用不会自动重试、切换平台或替你开通付费。
+- 无法连接：检查网络；浏览器限制本地文件请求时，使用编辑器本地预览或 GitHub Pages 的 HTTPS 地址。
+- 达到生成上限：页面标注截断，可继续追问；若思考消耗完额度而没有答案，缩短问题或改用 Quick。
 
-**这是一种使用自己密钥的浏览器开发模式，不是共享密钥的公开服务。** 密钥不写进代码、localStorage、用户 JSON 或导出文件。不要把自己的 Key 嵌入 GitHub Pages；公开产品若要使用你的统一密钥，需要以后实现 Back-End 代理。启用后，选作上下文的问题和历史会发送到 Groq；“保存在本地”不表示模型也在本地运行。
+当前只使用无服务端会话的 generateContent 流式接口，不创建 Google 服务端聊天会话、数据库或 Backend。模型和思考档位集中在 AI-Core/gemini.js 中。依据：[API Key](https://ai.google.dev/gemini-api/docs/api-key)、[思考配置](https://ai.google.dev/gemini-api/docs/thinking)、[REST 接口](https://ai.google.dev/api/generate-content)、[免费档与价格](https://ai.google.dev/gemini-api/docs/pricing)。
 
 ## 本地用户文件夹
 
@@ -69,7 +69,7 @@ users 目录已在 .gitignore 中整体排除。本地目录是空目录时 Git 
 
 ## 演示边界
 
-未启用 Groq 时，AI-Core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Groq，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。英雄头像和数据仍为 12 个演示占位数据。
+未启用 Gemini 时，AI-Core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。英雄头像和数据仍为 12 个演示占位数据。
 
 调用链为 Front-End → Skill → AI-Core → Skill → Front-End。Skill 暂时原样透传，预留补充资料和整理回复的位置；阵容和用户资料只传给 Skill 的 context，占位版暂不使用。AI-Core 接受通用文本或消息列表，不要求游戏专用字段。
 
@@ -77,7 +77,7 @@ Quick / Coach 硬切换 AI-Core 的调用配置：demo-instant / none / 128 输�
 
 回复支持逐段显示和停止。生成时切换模式、用户、对话会取消原请求；切换模式保留同一对话，下一条请求使用新配置。历史保存在本机，每次调用带最近 20 条有效历史消息。失败或停止的 AI 回复不会作为后续 AI 历史发送。
 
-Groq 通过 AI-Core/groq.js 的 provider 适配器接入；公开共享服务后续需要后端保管密钥。当前代码不包含真实 API 密钥。接口详见 AI-Core/README.md 与 Skill/README.md。
+Gemini 通过 AI-Core/gemini.js 的 provider 适配器接入。当前保留用户自带 Key 的纯静态方案，Back-End 继续占位。当前代码不包含真实 API 密钥。接口详见 AI-Core/README.md 与 Skill/README.md。
 
 开发验证（仅测试需要 Node.js，打开网页不需要）：`node --test tests/*.test.cjs`。
 
