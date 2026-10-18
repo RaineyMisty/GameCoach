@@ -2,11 +2,12 @@
 // Credentials never enter GCStore, localStorage, exports, files, or URLs.
 (() => {
   const $ = selector => document.querySelector(selector);
-  let revision = 0;
+  let revision = 0; let currentGameId = 'lolm';
   function refresh() {
     const live = window.GameCoachAI.getProviderName() === 'gemini';
     $('#ai-state').textContent = live ? 'Gemini 已启用' : '演示模式';
-    $('#provider-label').textContent = live ? 'Wild Rift · Google Gemini · 上下文将发送给 Gemini' : 'Wild Rift · 本地演示';
+    const game = window.GameCoachGames?.get(currentGameId);
+    $('#provider-label').textContent = (game?.name || '英雄联盟手游') + (live ? ' · Google Gemini · 上下文将发送给 Gemini' : ' · 本地演示');
     $('#ai-settings-shortcut').textContent = live ? 'AI 设置' : '连接 AI';
     $('#test-ai').disabled = !live; $('#disconnect-ai').disabled = !live;
     $('#ai-connection-status').textContent = live ? 'Quick：Flash-Lite · 最低思考档；Coach：Flash · 中等思考。密钥仅当前页面有效。' : '尚未连接真实 AI，当前回复是本地演示。';
@@ -41,5 +42,6 @@
     } catch (error) { if (current === revision) $('#ai-feedback').textContent = error.message; }
     finally { if (current === revision) $('#test-ai').disabled = !window.GameCoachGemini.isConfigured(); }
   };
+  window.addEventListener('gamecoach:game-changed', event => { currentGameId = event.detail.gameId; refresh(); });
   refresh();
 })();

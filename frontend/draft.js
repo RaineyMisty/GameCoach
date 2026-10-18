@@ -13,14 +13,15 @@ window.GameCoachDraft = (() => {
     name: rule.name + ' · ' + (first === 'ally' ? '蓝方' : '红方') + '先选' }))));
   const ruleFor = draft => rules.find(rule => rule.id === draft?.bpRule) || rules[0];
   const banLimit = draft => ruleFor(draft).bans;
-  const empty = () => ({ ally: Array(5).fill(null), enemy: Array(5).fill(null), bpMode: false, bpRule: rules[0].id,
+  const gameIdFor = id => window.GameCoachGames ? window.GameCoachGames.resolve(id) : ['lol', 'lolm'].includes(id) ? id : 'lolm';
+  const empty = (gameId = 'lolm') => ({ gameId: gameIdFor(gameId), ally: Array(5).fill(null), enemy: Array(5).fill(null), bpMode: false, bpRule: rules[0].id,
     bans: { ally: Array(5).fill(null), enemy: Array(5).fill(null) } });
   const kindOf = slot => slot?.kind === 'ban' ? 'ban' : 'pick';
   const row = (draft, side, kind = 'pick') => kind === 'ban' ? draft?.bans?.[side] : draft?.[side];
   const valid = slot => slot && sides.includes(slot.side) && Number.isInteger(slot.index) && slot.index >= 0 && slot.index < 5 && (!slot.kind || ['pick', 'ban'].includes(slot.kind));
   const same = (left, right) => !!left && !!right && left.side === right.side && left.index === right.index && kindOf(left) === kindOf(right);
   function normalize(value, isKnown = id => typeof id === 'string' && !!id) {
-    const result = empty(); result.bpMode = value?.bpMode === true; result.bpRule = ruleFor(value).id;
+    const result = empty(value?.gameId); result.bpMode = value?.bpMode === true; result.bpRule = ruleFor(value).id;
     const globalPicks = new Set();
     for (const side of sides) {
       const seen = result.bpMode ? globalPicks : new Set();
@@ -131,6 +132,6 @@ window.GameCoachDraft = (() => {
   }
   const setBPMode = (draft, enabled) => normalize({ ...draft, bpMode: enabled === true });
   const setRule = (draft, id) => normalize({ ...draft, bpRule: id });
-  const clear = draft => ({ ...empty(), bpMode: draft?.bpMode === true, bpRule: ruleFor(draft).id });
+  const clear = draft => ({ ...empty(draft?.gameId), bpMode: draft?.bpMode === true, bpRule: ruleFor(draft).id });
   return Object.freeze({ roles, rules, ruleFor, banLimit, sequence, nextAction, activeBan, empty, normalize, count, nextEmpty, locate, move, assign, assignBan, remove, same, setBPMode, setRule, clear });
 })();

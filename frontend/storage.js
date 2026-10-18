@@ -8,7 +8,8 @@ window.GCStore = (() => {
   const safeId = value => typeof value === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(value);
   const text = (value, max = 1000) => typeof value === 'string' ? value.slice(0, max) : '';
   function cleanDraft(draft) {
-    return window.GameCoachDraft.normalize(draft, id => window.GAMECOACH_DATA.champions.some(champion => champion.id === id));
+    const game = window.GameCoachGames?.get(draft?.gameId) || window.GAMECOACH_DATA;
+    return window.GameCoachDraft.normalize(draft, id => game.champions.some(champion => champion.id === id));
   }
   function cleanProfile(p) {
     const result = defaults();
@@ -37,8 +38,13 @@ window.GCStore = (() => {
       id: s.id, title: text(s.title, 80), created: text(s.created, 80),
       messages: (Array.isArray(s.messages) ? s.messages : []).slice(-100).map(cleanMessage).filter(Boolean),
     }));
+    const draft = cleanDraft(raw.draft); const drafts = {};
+    for (const game of window.GameCoachGames?.list || [{ gameId: 'lolm' }]) {
+      if (raw.drafts?.[game.gameId]) drafts[game.gameId] = cleanDraft({ ...raw.drafts[game.gameId], gameId: game.gameId });
+    }
+    drafts[draft.gameId] = draft;
     return { id: raw.id, name: raw.name.trim().slice(0, 24), profile: cleanProfile(raw.profile),
-      draft: cleanDraft(raw.draft), sessions, updatedAt: text(raw.updatedAt, 80) || new Date().toISOString() };
+      draft, drafts, sessions, updatedAt: text(raw.updatedAt, 80) || new Date().toISOString() };
   }
   const newUser = name => ({ id: uuid(), name: name.trim(), profile: defaults(), draft: window.GameCoachDraft.empty(), sessions: [], updatedAt: new Date().toISOString() });
   let database;
@@ -106,6 +112,16 @@ window.GCStore = (() => {
     if (database.users.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('这个昵称已存在，请直接切换到该用户。');
     const user = newUser(name); database.users.push(user); database.activeId = user.id; persist(); return user;
   }
+  function saveDraft(draft) {
+    const cleaned = cleanDraft(draft); const user = current(); user.drafts ||= {};
+    user.draft = cleaned; user.drafts[cleaned.gameId] = cleaned; persist(); return cleaned;
+  }
+  function selectGame(id) {
+    if (!window.GameCoachGames?.has(id)) throw new Error('这个游戏暂未接入。');
+    // Carry the current lineup across games; target validation clears unavailable
+    // heroes in place, without restoring an older per-game draft.
+    return saveDraft({ ...current().draft, gameId: id });
+  }
   function select(id) {
     if (!database.users.some(u => u.id === id)) throw new Error('用户不存在。');
     database.activeId = id; persist({ touch: false });
@@ -168,7 +184,7 @@ window.GCStore = (() => {
     database.users.push(user); database.activeId = user.id; persist(); return user;
   }
   return {
-    uuid, current, cleanProfile, cleanDraft, create, select, persist, connectFolder, importBackup,
+    uuid, current, cleanProfile, cleanDraft, create, select, saveDraft, selectGame, persist, connectFolder, importBackup,
     users: () => database.users,
     folderConnected: () => !!directory,
     browserAvailable: () => browserAvailable,

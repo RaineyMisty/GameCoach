@@ -206,3 +206,46 @@
   .summary-slot.summary-ban { width: 23px; height: 23px; }
   .app-layout.has-summary-bans .workspace { padding-top: 175px; }
 }
+
+/* One catalogue selector controls the page and the active game's draft source. */
+.game-selector { position: relative; --game-accent: #568d7d; }
+.game-trigger { display: flex; align-items: center; gap: 8px; padding: 6px 9px 6px 6px; border: 1px solid #e4e8df; border-radius: 12px; background: #ffffffb8; color: #66746b; font-size: 11px; white-space: nowrap; }
+.game-trigger:hover, .game-trigger[aria-expanded="true"] { background: #fff; border-color: #bdcabc; box-shadow: 0 3px 12px #344a2c08; }
+.game-symbol { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 8px; color: var(--game-accent); background: #f0f3ed; font-family: Georgia, serif; font-size: 16px; font-weight: 700; }
+.game-menu { position: absolute; top: calc(100% + 10px); left: 0; z-index: 30; width: 276px; padding: 7px; border: 1px solid #e6e9e1; border-radius: 17px; background: #fff; box-shadow: 0 12px 45px #253e2421, 0 2px 8px #253e2406; }
+.game-option { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 10px; border-radius: 11px; background: transparent; text-align: left; color: #4b5a50; }
+.game-option:hover { background: #f6f7f2; }
+.game-option:disabled { cursor: default; opacity: .68; }
+.game-option:disabled:hover { background: transparent; }
+.game-option[aria-selected="true"] { background: #edf3e9; }
+.game-option-symbol { display: grid; place-items: center; flex-shrink: 0; width: 37px; height: 37px; border: 1px solid #e0e6da; border-radius: 11px; background: #fafbf7; color: var(--option-accent); font-family: Georgia, serif; font-size: 23px; font-weight: 700; }
+.game-option-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; }
+.game-option-copy strong { font-size: 12px; font-weight: 600; }
+.game-option-copy small { color: #a1a89c; font-size: 9px; }
+.game-option-platform { font-size: 9px; color: #8c9b83; }
+.game-option[aria-selected="true"] .game-option-platform::after { content: ' ✓'; }
+@media (min-width: 761px) and (max-width: 1150px) {
+  .topbar { height: auto; min-height: 115px; padding: 14px 24px; grid-template-columns: 1fr auto; gap: 13px; }
+  .mode-switch { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+  .brand-group, .header-actions { grid-row: 2; }
+  .draft-summary { top: 150px; }
+  .app-layout .workspace { min-height: calc(100dvh - 125px); }
+}
+@media (max-width: 760px) {
+  .topbar { padding-bottom: 59px; }
+  .game-selector { position: absolute; top: 116px; left: 18px; }
+  .game-trigger { padding-top: 4px; padding-bottom: 4px; }
+  .game-menu { max-width: calc(100vw - 36px); }
+  .draft-summary { top: 184px; }
+  .app-layout .workspace { min-height: calc(100dvh - 163px); }
+  .app-layout.has-summary-bans .workspace { padding-top: 190px; }
+}
+
+@media (max-height: 800px) {
+  .workspace:not(.has-chat) .welcome { margin-top: 0; padding: 12px 0 20px; }
+  .workspace:not(.has-chat) .coach-mark { width: 48px; height: 48px; font-size: 29px; border-radius: 17px; margin-bottom: 12px; }
+  .workspace:not(.has-chat) .welcome h1 { font-size: 30px; margin-top: 8px; }
+  .workspace:not(.has-chat) .welcome-subtitle { margin-top: 6px; }
+  .workspace:not(.has-chat) .composer-area { margin-bottom: 18px; }
+  .workspace:not(.has-chat) .page-note { margin-top: 13px; }
+}

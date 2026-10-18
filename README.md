@@ -112,3 +112,17 @@ Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线�
 切换规则保留已有选择与禁用记录。三禁模板暂时隐藏第 4、5 个禁用位，这些隐藏记录不参与当前禁用限制；切回五禁会恢复显示。若其英雄已被选中，对应禁用记录会清除。规则与模式一并本地保存，清空阵容保留规则选择。
 
 分段顺序参考 [ESL Snapdragon Pro Series Wild Rift 官方赛事规则，第 6.7.3 节](https://cdn.eslgaming.com/misc/gfx/media/play/global/sps/rulebooks/wildrift.pdf)。三禁是旧版/自定义模板，可参阅 [Wild Rift 2.4 官方说明](https://wildrift.leagueoflegends.com/en-gb/news/dev/dev-patch-2-4-ranked-updates/)。蓝红方与先后选分离可参阅 [Riot 2026 First Selection 说明](https://lolesports.com/en-AU/news/season-start-2026-lol-esports)；本工具用先选方 A、后选方 B 镜像流程，未实现系列赛无畏征召。
+## 游戏与资源
+
+主界面左上角切换“英雄联盟 / 英雄联盟手游”。两个游戏使用各自的英雄池，切换时沿用当前阵容、禁用记录、BP 模式和规则；目标游戏没有的英雄会从原位置清除，其余位置保持不变。切回时不会恢复已经清除的英雄，也不会覆盖成旧的独立阵容。刷新、导入导出保留当前选择；旧版用户数据及消息自动归入手游。聊天中每条消息的阵容带有自己的 gameId，不受之后切换游戏影响。
+
+- resources/lol/champions.js：端游英雄数据，Riot Data Dragon 16.20.1，173 位英雄。
+- resources/lolm/champions.js：手游英雄数据，2026-10-18 官方目录快照，142 位英雄。
+- resources/lol/champion-icons/：两个游戏共用的头像文件目录，按统一英雄 ID 命名，例如 ahri.png。
+- frontend/data.js：游戏目录和数据源入口，保留 GAMECOACH_DATA 兼容别名。
+
+本次未下载头像；缺图仍显示空白占位。手游不建立头像副本。端游位置筛选参考既有分类与 Riot 类型标签，不表示当期版本的强势分路。
+
+后续游戏可以新增 resources/<游戏 ID>/champions.js 数据源，在 index.html 中按顺序加载后由 GameCoachGames 列出；不同游戏的位置分类与 BP 规则可继续按其玩法扩展。数据源脚本保存在本地，双击 HTML 与 GitHub Pages 均不依赖跨目录 fetch。
+
+端游名单来源：[Riot Data Dragon 英雄数据](https://ddragon.leagueoflegends.com/cdn/16.20.1/data/en_US/champion.json)。

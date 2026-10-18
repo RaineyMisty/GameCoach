@@ -3,7 +3,11 @@ window.GameCoachDraftUI = (() => {
   function create({ champions, getDraft, onChange }) {
     const $ = selector => document.querySelector(selector);
     const draftOps = window.GameCoachDraft;
-    const byId = new Map(champions.map(champion => [champion.id, champion]));
+    let byId = new Map(champions.map(champion => [champion.id, champion]));
+    function setChampions(next) {
+      champions = next; byId = new Map(next.map(champion => [champion.id, champion])); banTarget = null; filter = 'all'; $('#search').value = '';
+      for (const tab of $('#hero-filters').children) tab.setAttribute('aria-pressed', String(tab.textContent === '全部英雄'));
+    }
     let dragging = null; let filter = 'all'; let banTarget = null;
     function node(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
     function control(label, className, action) { const value = node('button', className, label); value.type = 'button'; value.onclick = action; return value; }
@@ -197,7 +201,7 @@ window.GameCoachDraftUI = (() => {
       const removed = draftOps.count(previous) - draftOps.count(next); commit(next);
       if (removed) $('#pick-hint').textContent = '已开启 BP 模式：保留蓝方英雄，清除了 ' + removed + ' 个红方重复选择。';
     };
-    return Object.freeze({ render });
+    return Object.freeze({ render, setChampions });
   }
   return Object.freeze({ create });
 })();

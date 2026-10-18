@@ -1,13 +1,13 @@
 'use strict';
 const $ = selector => document.querySelector(selector);
 const store = window.GCStore;
-const data = window.GAMECOACH_DATA;
+const games = window.GameCoachGames;
 const draftOps = window.GameCoachDraft;
 const state = { mode: 'quick', sessionId: null, draft: draftOps.empty(), question: '' };
 const profileForm = $('#profile');
-const champions = new Map(data.champions.map(c => [c.id, c]));
+let renderedGameId = null;
 let activeRequest = null;
-const draftUI = window.GameCoachDraftUI.create({ champions: data.champions, getDraft: () => state.draft,
+const draftUI = window.GameCoachDraftUI.create({ champions: games.get('lolm').champions, getDraft: () => state.draft,
   onChange(draft) { state.draft = draft; updateDraft(); }, onOpen: () => openDialog('bp-dialog') });
 window.addEventListener('gamecoach:ai-changing', () => cancelRequest());
 function element(tag, className, text) {
@@ -44,9 +44,43 @@ function setMode(mode) {
 $('#quick').onclick = () => setMode('quick');
 $('#coach').onclick = () => setMode('coach');
 function updateDraft() {
-  store.current().draft = structuredClone(state.draft); store.persist(); renderDraft();
+  state.draft = store.saveDraft(state.draft); renderDraft();
 }
-function renderDraft() { draftUI.render(); resizeInput(); }
+function renderDraft() {
+  const game = games.get(state.draft.gameId);
+  if (renderedGameId !== game.gameId) { draftUI.setChampions(game.champions); renderedGameId = game.gameId; }
+  $('#game-label').textContent = game.name; $('#game-symbol').textContent = game.icon;
+  $('#game-selector').style.setProperty('--game-accent', game.accent);
+  $('#bp-game-label').textContent = game.name + ' · LINEUP';
+  $('#game-open').setAttribute('aria-label', '切换游戏，当前：' + game.name);
+  for (const option of $('#game-menu').children) option.setAttribute('aria-selected', String(option.dataset.gameId === game.gameId));
+  draftUI.render(); resizeInput(); window.dispatchEvent(new CustomEvent('gamecoach:game-changed', { detail: { gameId: game.gameId } }));
+}
+function closeGameMenu() { $('#game-menu').hidden = true; $('#game-open').setAttribute('aria-expanded', 'false'); }
+$('#game-open').onclick = () => { const opening = $('#game-menu').hidden; $('#game-menu').hidden = !opening; $('#game-open').setAttribute('aria-expanded', String(opening)); };
+for (const game of [...games.list,
+  { gameId: 'hok', name: '王者荣耀', icon: '王', accent: '#b39761', description: '峡谷对决 · 敬请期待', platform: '即将开放', comingSoon: true },
+  { gameId: 'dota2', name: 'Dota 2', icon: 'D', accent: '#b66c5b', description: '天辉与夜魇 · 敬请期待', platform: '即将开放', comingSoon: true },
+]) {
+  const option = button('', 'game-option', () => {
+    closeGameMenu(); if (state.draft.gameId === game.gameId) return;
+    cancelRequest(); state.draft = store.selectGame(game.gameId); renderDraft(); $('#game-open').focus();
+  });
+  option.setAttribute('role', 'option'); option.dataset.gameId = game.gameId;
+  if (game.comingSoon) { option.disabled = true; option.setAttribute('aria-disabled', 'true'); }
+  const icon = element('span', 'game-option-symbol', game.icon); icon.style.setProperty('--option-accent', game.accent);
+  const body = element('span', 'game-option-copy'); body.append(element('strong', '', game.name), element('small', '', game.description));
+  option.append(icon, body, element('span', 'game-option-platform', game.platform)); $('#game-menu').append(option);
+}
+document.addEventListener('click', event => { if (!$('#game-selector').contains(event.target)) closeGameMenu(); });
+$('#game-selector').addEventListener('keydown', event => {
+  if (event.key === 'Escape') { closeGameMenu(); $('#game-open').focus(); }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault(); $('#game-menu').hidden = false; $('#game-open').setAttribute('aria-expanded', 'true');
+    const options = [...$('#game-menu').children].filter(option => !option.disabled); const current = options.indexOf(document.activeElement);
+    options[(current + (event.key === 'ArrowDown' ? 1 : options.length - 1) + options.length) % options.length]?.focus();
+  }
+});
 function resizeInput() {
   const question = $('#question'); question.style.height = 'auto'; question.style.height = Math.min(question.scrollHeight, 180) + 'px';
   $('#send').disabled = !activeRequest && !question.value.trim() && !draftOps.count(state.draft);
@@ -64,6 +98,7 @@ for (const prompt of document.querySelectorAll('[data-prompt]')) prompt.onclick 
 };
 const currentSession = () => store.current().sessions.find(s => s.id === state.sessionId);
 function messageDraftElement(draft) {
+  const champions = new Map(games.get(draft?.gameId).champions.map(champion => [champion.id, champion]));
   const names = ids => (ids || []).map(id => champions.get(id)?.name).filter(Boolean).join('、');
   const teams = ['ally', 'enemy'].map(side => ({ side, picks: names(draft?.[side]),
     bans: draft?.bpMode ? names(draft.bans?.[side]?.slice(0, draftOps.banLimit(draft))) : '' }));
