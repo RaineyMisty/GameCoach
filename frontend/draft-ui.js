@@ -66,9 +66,11 @@ window.GameCoachDraftUI = (() => {
         if (!source || !byId.has(source.id)) return;
         try {
           const draft = getDraft();
-          const next = source.from ? draftOps.move(draft, source.from, slot) : slot.kind === 'ban'
+          const from = source.from || (draft.bpMode
+            ? draftOps.locate(draft, source.id) || draftOps.locate(draft, source.id, undefined, 'ban') : null);
+          const next = from ? draftOps.move(draft, from, slot) : slot.kind === 'ban'
             ? draftOps.assignBan(draft, source.id, slot) : draftOps.assign(draft, source.id, slot);
-          commit(next);
+          banTarget = null; commit(next);
         } catch (error) { $('#pick-hint').textContent = error.message; }
       };
     }

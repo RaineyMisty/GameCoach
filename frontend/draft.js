@@ -96,11 +96,10 @@ window.GameCoachDraft = (() => {
   }
   function move(draft, from, to) {
     if (!valid(from) || !valid(to)) throw new Error('无效的阵容位置。');
-    if (kindOf(from) !== kindOf(to)) throw new Error('禁用位和选人位不能直接交换，请从英雄列表选择。');
-    const result = normalize(draft); const kind = kindOf(from);
-    if (kind === 'ban' && !result.bpMode) throw new Error('请先开启 BP 模式。');
-    if (kind === 'ban' && (from.index >= banLimit(result) || to.index >= banLimit(result))) throw new Error('当前规则没有这个禁用位。');
-    const source = row(result, from.side, kind); const target = row(result, to.side, kind);
+    const result = normalize(draft); const banSlots = [from, to].filter(slot => kindOf(slot) === 'ban');
+    if (banSlots.length && !result.bpMode) throw new Error('请先开启 BP 模式。');
+    if (banSlots.some(slot => slot.index >= banLimit(result))) throw new Error('当前规则没有这个禁用位。');
+    const source = row(result, from.side, kindOf(from)); const target = row(result, to.side, kindOf(to));
     [source[from.index], target[to.index]] = [target[to.index], source[from.index]];
     assertLegal(result); return result;
   }

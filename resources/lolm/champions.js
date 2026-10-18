@@ -1180,8 +1180,8 @@ window.GAMECOACH_SOURCES.lolm = {
       "name": "诺拉",
       "title": "悠游秘境",
       "englishName": "NORRA",
-      "portrait": "../resources/lol/champion-icons/norra.png",
-      "sourcePortrait": null,
+      "portrait": "../resources/lolm/champion-icons/norra.png",
+      "sourcePortrait": "https://game.gtimg.cn/images/lgamem/act/lrlib/img/HeadIcon/H_S_10166.png",
       "roles": [
         "mid",
         "support"

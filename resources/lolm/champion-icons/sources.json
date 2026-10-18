@@ -1,0 +1,18 @@
+{
+  "provider": "League of Legends: Wild Rift official Chinese website (Tencent)",
+  "downloadedOn": "2026-10-18",
+  "copyright": "Riot Games, Inc.",
+  "images": [
+    {
+      "id": "norra",
+      "officialHeroId": "10166",
+      "source": "https://game.gtimg.cn/images/lgamem/act/lrlib/img/HeadIcon/H_S_10166.png",
+      "catalogue": "https://game.gtimg.cn/images/lgamem/act/lrlib/js/heroList/hero_list.js",
+      "website": "https://lolm.qq.com/main.html",
+      "width": 128,
+      "height": 128,
+      "bytes": 42546,
+      "status": "downloaded"
+    }
+  ]
+}

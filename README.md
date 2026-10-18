@@ -6,7 +6,7 @@ HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地�
 
 ```text
 GameCoach/
-├── frontend/        # 全部页面、样式、脚本与头像
+├── frontend/        # 全部页面、样式与前端脚本
 ├── Skill/           # 占位 Skill：请求和流式回复原样转交
 ├── AI-Core/         # 通用模型调用、执行模式、取消和超时
 ├── Back-End/        # 仅目录说明，本阶段不实现后端
@@ -75,7 +75,7 @@ users 目录已在 .gitignore 中整体排除。本地目录是空目录时 Git 
 
 ## 演示边界
 
-未启用 Gemini 时，AI-Core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。英雄名单与头像来自手游官网 2026-10-18 快照，共 142 位；中文名称参考 Riot Data Dragon，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
+未启用 Gemini 时，AI-Core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。手游英雄名单来自手游官网 2026-10-18 快照，共 142 位；端游英雄名单、中文名称与共用头像来自 Riot Data Dragon 16.20.1，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
 
 调用链为 Front-End → Skill → AI-Core → Skill → Front-End。Skill 暂时原样透传，预留补充资料和整理回复的位置；阵容和用户资料只传给 Skill 的 context，占位版暂不使用。AI-Core 接受通用文本或消息列表，不要求游戏专用字段。
 
@@ -93,7 +93,7 @@ Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线�
 
 许可证见 LICENSE。
 
-英雄数据来源：[手游官方英雄目录](https://wildrift.leagueoflegends.com/en-us/champions/)。头像已保存在 frontend/assets/portraits，浏览和选人无需联网；角色图像版权归 Riot Games。源地址与采集日期保留在 frontend/data.js。
+英雄数据来源：[手游官方英雄目录](https://wildrift.leagueoflegends.com/en-us/champions/)与 [Riot Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon)。共用头像保存在 resources/lol/champion-icons，手游独有头像保存在 resources/lolm/champion-icons，浏览和选人无需联网；角色图像版权归 Riot Games。头像来源记录见各目录的 sources.json。
 
 ## BP 自动填充规则
 
@@ -107,7 +107,7 @@ Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线�
 
 以 A 为先选方、B 为后选方，分段流程依次为：禁用 ABABAB，选人 ABBAAB，禁用 BABA，选人 BAAB。五禁与三禁模板的禁用阶段按 AB 交替录入，选人顺序为 ABBAABBAAB，即 1–2–2–2–2–1 分组。它们是顺序录入模板，不模拟排位客户端的同时禁用与倒计时。
 
-点击英雄会自动填写当前阶段、当前队伍的下一个空位。已有选择会跳过，删除后优先补回规则中最早的空位。手动点击禁用位可修改该位，填一次后恢复自动流程；拖动仍可修正位置。
+点击英雄会自动填写当前阶段、当前队伍的下一个空位。已有选择会跳过，删除后优先补回规则中最早的空位。手动点击禁用位可修改该位，填一次后恢复自动流程。BP 模式下，选人位和禁用位支持互相拖动，也可跨蓝红方；拖到空位时移动，拖到已有英雄的位置时交换两位英雄。拖动英雄列表里已经选中或禁用的英雄，也会移动或交换其现有位置，之后恢复自动流程。
 
 切换规则保留已有选择与禁用记录。三禁模板暂时隐藏第 4、5 个禁用位，这些隐藏记录不参与当前禁用限制；切回五禁会恢复显示。若其英雄已被选中，对应禁用记录会清除。规则与模式一并本地保存，清空阵容保留规则选择。
 
@@ -119,9 +119,10 @@ Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线�
 - resources/lol/champions.js：端游英雄数据，Riot Data Dragon 16.20.1，173 位英雄。
 - resources/lolm/champions.js：手游英雄数据，2026-10-18 官方目录快照，142 位英雄。
 - resources/lol/champion-icons/：两个游戏共用的头像文件目录，按统一英雄 ID 命名，例如 ahri.png。
+- resources/lolm/champion-icons/：手游独有英雄头像，例如 norra.png；已有共用头像不重复保存。
 - frontend/data.js：游戏目录和数据源入口，保留 GAMECOACH_DATA 兼容别名。
 
-本次未下载头像；缺图仍显示空白占位。手游不建立头像副本。端游位置筛选参考既有分类与 Riot 类型标签，不表示当期版本的强势分路。
+已从 Riot 官方 Data Dragon 16.20.1 下载 173 张 128×128 英雄方形小头像，两个游戏共用。手游独有英雄诺拉的小头像来自腾讯手游官网英雄目录的 avatar 字段，也保留官方原始 128×128 PNG，单独存放在手游目录。每张图片的源地址、尺寸与下载日期记录在对应头像目录的 sources.json。端游位置筛选参考既有分类与 Riot 类型标签，不表示当期版本的强势分路。
 
 后续游戏可以新增 resources/<游戏 ID>/champions.js 数据源，在 index.html 中按顺序加载后由 GameCoachGames 列出；不同游戏的位置分类与 BP 规则可继续按其玩法扩展。数据源脚本保存在本地，双击 HTML 与 GitHub Pages 均不依赖跨目录 fetch。
 

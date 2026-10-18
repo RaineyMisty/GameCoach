@@ -1,0 +1,1392 @@
+{
+  "provider": "Riot Games Data Dragon",
+  "version": "16.20.1",
+  "downloadedOn": "2026-10-18",
+  "copyright": "Riot Games, Inc.",
+  "images": [
+    {
+      "id": "aatrox",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Aatrox.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25644,
+      "status": "downloaded"
+    },
+    {
+      "id": "ahri",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ahri.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28511,
+      "status": "downloaded"
+    },
+    {
+      "id": "akali",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Akali.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27191,
+      "status": "downloaded"
+    },
+    {
+      "id": "akshan",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Akshan.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25518,
+      "status": "downloaded"
+    },
+    {
+      "id": "alistar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Alistar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28116,
+      "status": "downloaded"
+    },
+    {
+      "id": "ambessa",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ambessa.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 20689,
+      "status": "downloaded"
+    },
+    {
+      "id": "amumu",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Amumu.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24683,
+      "status": "downloaded"
+    },
+    {
+      "id": "anivia",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Anivia.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27008,
+      "status": "downloaded"
+    },
+    {
+      "id": "annie",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Annie.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30267,
+      "status": "downloaded"
+    },
+    {
+      "id": "aphelios",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Aphelios.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25225,
+      "status": "downloaded"
+    },
+    {
+      "id": "ashe",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ashe.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 32121,
+      "status": "downloaded"
+    },
+    {
+      "id": "aurelion-sol",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/AurelionSol.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26953,
+      "status": "downloaded"
+    },
+    {
+      "id": "aurora",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Aurora.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31037,
+      "status": "downloaded"
+    },
+    {
+      "id": "azir",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Azir.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25934,
+      "status": "downloaded"
+    },
+    {
+      "id": "bard",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Bard.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31628,
+      "status": "downloaded"
+    },
+    {
+      "id": "belveth",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Belveth.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25348,
+      "status": "downloaded"
+    },
+    {
+      "id": "blitzcrank",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Blitzcrank.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29858,
+      "status": "downloaded"
+    },
+    {
+      "id": "brand",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Brand.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30626,
+      "status": "downloaded"
+    },
+    {
+      "id": "braum",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Braum.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 23674,
+      "status": "downloaded"
+    },
+    {
+      "id": "briar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Briar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31369,
+      "status": "downloaded"
+    },
+    {
+      "id": "caitlyn",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Caitlyn.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25976,
+      "status": "downloaded"
+    },
+    {
+      "id": "camille",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Camille.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26879,
+      "status": "downloaded"
+    },
+    {
+      "id": "cassiopeia",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Cassiopeia.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26205,
+      "status": "downloaded"
+    },
+    {
+      "id": "chogath",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Chogath.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 32006,
+      "status": "downloaded"
+    },
+    {
+      "id": "corki",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Corki.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28457,
+      "status": "downloaded"
+    },
+    {
+      "id": "darius",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Darius.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27666,
+      "status": "downloaded"
+    },
+    {
+      "id": "diana",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Diana.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24762,
+      "status": "downloaded"
+    },
+    {
+      "id": "dr-mundo",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/DrMundo.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30630,
+      "status": "downloaded"
+    },
+    {
+      "id": "draven",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Draven.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26400,
+      "status": "downloaded"
+    },
+    {
+      "id": "ekko",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ekko.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26511,
+      "status": "downloaded"
+    },
+    {
+      "id": "elise",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Elise.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27566,
+      "status": "downloaded"
+    },
+    {
+      "id": "evelynn",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Evelynn.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27174,
+      "status": "downloaded"
+    },
+    {
+      "id": "ezreal",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ezreal.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31064,
+      "status": "downloaded"
+    },
+    {
+      "id": "fiddlesticks",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Fiddlesticks.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27884,
+      "status": "downloaded"
+    },
+    {
+      "id": "fiora",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Fiora.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28094,
+      "status": "downloaded"
+    },
+    {
+      "id": "fizz",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Fizz.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27947,
+      "status": "downloaded"
+    },
+    {
+      "id": "galio",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Galio.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24739,
+      "status": "downloaded"
+    },
+    {
+      "id": "gangplank",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Gangplank.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28742,
+      "status": "downloaded"
+    },
+    {
+      "id": "garen",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Garen.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30705,
+      "status": "downloaded"
+    },
+    {
+      "id": "gnar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Gnar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25845,
+      "status": "downloaded"
+    },
+    {
+      "id": "gragas",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Gragas.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28755,
+      "status": "downloaded"
+    },
+    {
+      "id": "graves",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Graves.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28267,
+      "status": "downloaded"
+    },
+    {
+      "id": "gwen",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Gwen.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31229,
+      "status": "downloaded"
+    },
+    {
+      "id": "hecarim",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Hecarim.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28985,
+      "status": "downloaded"
+    },
+    {
+      "id": "heimerdinger",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Heimerdinger.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 32532,
+      "status": "downloaded"
+    },
+    {
+      "id": "hwei",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Hwei.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24613,
+      "status": "downloaded"
+    },
+    {
+      "id": "illaoi",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Illaoi.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25338,
+      "status": "downloaded"
+    },
+    {
+      "id": "irelia",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Irelia.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29037,
+      "status": "downloaded"
+    },
+    {
+      "id": "ivern",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ivern.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25942,
+      "status": "downloaded"
+    },
+    {
+      "id": "janna",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Janna.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28129,
+      "status": "downloaded"
+    },
+    {
+      "id": "jarvan-iv",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/JarvanIV.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28504,
+      "status": "downloaded"
+    },
+    {
+      "id": "jax",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Jax.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27107,
+      "status": "downloaded"
+    },
+    {
+      "id": "jayce",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Jayce.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 23552,
+      "status": "downloaded"
+    },
+    {
+      "id": "jhin",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Jhin.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25526,
+      "status": "downloaded"
+    },
+    {
+      "id": "jinx",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Jinx.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27938,
+      "status": "downloaded"
+    },
+    {
+      "id": "kaisa",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kaisa.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26828,
+      "status": "downloaded"
+    },
+    {
+      "id": "kalista",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kalista.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28603,
+      "status": "downloaded"
+    },
+    {
+      "id": "karma",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Karma.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30154,
+      "status": "downloaded"
+    },
+    {
+      "id": "karthus",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Karthus.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28743,
+      "status": "downloaded"
+    },
+    {
+      "id": "kassadin",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kassadin.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29874,
+      "status": "downloaded"
+    },
+    {
+      "id": "katarina",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Katarina.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26732,
+      "status": "downloaded"
+    },
+    {
+      "id": "kayle",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kayle.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24103,
+      "status": "downloaded"
+    },
+    {
+      "id": "kayn",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kayn.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25653,
+      "status": "downloaded"
+    },
+    {
+      "id": "kennen",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kennen.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26105,
+      "status": "downloaded"
+    },
+    {
+      "id": "khazix",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Khazix.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 23545,
+      "status": "downloaded"
+    },
+    {
+      "id": "kindred",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kindred.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29250,
+      "status": "downloaded"
+    },
+    {
+      "id": "kled",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Kled.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28478,
+      "status": "downloaded"
+    },
+    {
+      "id": "kogmaw",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/KogMaw.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29237,
+      "status": "downloaded"
+    },
+    {
+      "id": "ksante",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/KSante.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25880,
+      "status": "downloaded"
+    },
+    {
+      "id": "leblanc",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Leblanc.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 36027,
+      "status": "downloaded"
+    },
+    {
+      "id": "lee-sin",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/LeeSin.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24979,
+      "status": "downloaded"
+    },
+    {
+      "id": "leona",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Leona.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31573,
+      "status": "downloaded"
+    },
+    {
+      "id": "lillia",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Lillia.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28814,
+      "status": "downloaded"
+    },
+    {
+      "id": "lissandra",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Lissandra.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28806,
+      "status": "downloaded"
+    },
+    {
+      "id": "locke",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Locke.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 36247,
+      "status": "downloaded"
+    },
+    {
+      "id": "lucian",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Lucian.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27998,
+      "status": "downloaded"
+    },
+    {
+      "id": "lulu",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Lulu.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29539,
+      "status": "downloaded"
+    },
+    {
+      "id": "lux",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Lux.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29188,
+      "status": "downloaded"
+    },
+    {
+      "id": "malphite",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Malphite.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26063,
+      "status": "downloaded"
+    },
+    {
+      "id": "malzahar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Malzahar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27604,
+      "status": "downloaded"
+    },
+    {
+      "id": "maokai",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Maokai.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27854,
+      "status": "downloaded"
+    },
+    {
+      "id": "master-yi",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/MasterYi.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29421,
+      "status": "downloaded"
+    },
+    {
+      "id": "mel",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Mel.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29534,
+      "status": "downloaded"
+    },
+    {
+      "id": "milio",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Milio.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27199,
+      "status": "downloaded"
+    },
+    {
+      "id": "miss-fortune",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/MissFortune.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25963,
+      "status": "downloaded"
+    },
+    {
+      "id": "mordekaiser",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Mordekaiser.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26259,
+      "status": "downloaded"
+    },
+    {
+      "id": "morgana",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Morgana.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26025,
+      "status": "downloaded"
+    },
+    {
+      "id": "naafiri",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Naafiri.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 23851,
+      "status": "downloaded"
+    },
+    {
+      "id": "nami",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nami.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28176,
+      "status": "downloaded"
+    },
+    {
+      "id": "nasus",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nasus.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29763,
+      "status": "downloaded"
+    },
+    {
+      "id": "nautilus",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nautilus.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28532,
+      "status": "downloaded"
+    },
+    {
+      "id": "neeko",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Neeko.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28615,
+      "status": "downloaded"
+    },
+    {
+      "id": "nidalee",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nidalee.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26077,
+      "status": "downloaded"
+    },
+    {
+      "id": "nilah",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nilah.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28372,
+      "status": "downloaded"
+    },
+    {
+      "id": "nocturne",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nocturne.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27356,
+      "status": "downloaded"
+    },
+    {
+      "id": "nunu-and-willump",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Nunu.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27502,
+      "status": "downloaded"
+    },
+    {
+      "id": "olaf",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Olaf.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30509,
+      "status": "downloaded"
+    },
+    {
+      "id": "orianna",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Orianna.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 21902,
+      "status": "downloaded"
+    },
+    {
+      "id": "ornn",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ornn.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25086,
+      "status": "downloaded"
+    },
+    {
+      "id": "pantheon",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Pantheon.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28793,
+      "status": "downloaded"
+    },
+    {
+      "id": "poppy",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Poppy.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31447,
+      "status": "downloaded"
+    },
+    {
+      "id": "pyke",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Pyke.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29162,
+      "status": "downloaded"
+    },
+    {
+      "id": "qiyana",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Qiyana.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30662,
+      "status": "downloaded"
+    },
+    {
+      "id": "quinn",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Quinn.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30154,
+      "status": "downloaded"
+    },
+    {
+      "id": "rakan",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Rakan.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28472,
+      "status": "downloaded"
+    },
+    {
+      "id": "rammus",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Rammus.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27369,
+      "status": "downloaded"
+    },
+    {
+      "id": "reksai",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/RekSai.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27922,
+      "status": "downloaded"
+    },
+    {
+      "id": "rell",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Rell.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29915,
+      "status": "downloaded"
+    },
+    {
+      "id": "renata-glasc",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Renata.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27669,
+      "status": "downloaded"
+    },
+    {
+      "id": "renekton",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Renekton.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29409,
+      "status": "downloaded"
+    },
+    {
+      "id": "rengar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Rengar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31091,
+      "status": "downloaded"
+    },
+    {
+      "id": "riven",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Riven.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27993,
+      "status": "downloaded"
+    },
+    {
+      "id": "rumble",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Rumble.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29584,
+      "status": "downloaded"
+    },
+    {
+      "id": "ryze",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ryze.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25185,
+      "status": "downloaded"
+    },
+    {
+      "id": "samira",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Samira.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24690,
+      "status": "downloaded"
+    },
+    {
+      "id": "sejuani",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sejuani.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31761,
+      "status": "downloaded"
+    },
+    {
+      "id": "senna",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Senna.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 23661,
+      "status": "downloaded"
+    },
+    {
+      "id": "seraphine",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Seraphine.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27763,
+      "status": "downloaded"
+    },
+    {
+      "id": "sett",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sett.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26531,
+      "status": "downloaded"
+    },
+    {
+      "id": "shaco",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Shaco.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28951,
+      "status": "downloaded"
+    },
+    {
+      "id": "shen",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Shen.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25298,
+      "status": "downloaded"
+    },
+    {
+      "id": "shyvana",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Shyvana.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 39720,
+      "status": "downloaded"
+    },
+    {
+      "id": "singed",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Singed.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27610,
+      "status": "downloaded"
+    },
+    {
+      "id": "sion",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sion.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26066,
+      "status": "downloaded"
+    },
+    {
+      "id": "sivir",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sivir.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28166,
+      "status": "downloaded"
+    },
+    {
+      "id": "skarner",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Skarner.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29500,
+      "status": "downloaded"
+    },
+    {
+      "id": "smolder",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Smolder.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29635,
+      "status": "downloaded"
+    },
+    {
+      "id": "sona",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sona.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26340,
+      "status": "downloaded"
+    },
+    {
+      "id": "soraka",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Soraka.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31969,
+      "status": "downloaded"
+    },
+    {
+      "id": "swain",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Swain.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24066,
+      "status": "downloaded"
+    },
+    {
+      "id": "sylas",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Sylas.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27292,
+      "status": "downloaded"
+    },
+    {
+      "id": "syndra",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Syndra.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30524,
+      "status": "downloaded"
+    },
+    {
+      "id": "tahm-kench",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/TahmKench.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27628,
+      "status": "downloaded"
+    },
+    {
+      "id": "taliyah",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Taliyah.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24435,
+      "status": "downloaded"
+    },
+    {
+      "id": "talon",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Talon.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26989,
+      "status": "downloaded"
+    },
+    {
+      "id": "taric",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Taric.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27875,
+      "status": "downloaded"
+    },
+    {
+      "id": "teemo",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Teemo.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 21456,
+      "status": "downloaded"
+    },
+    {
+      "id": "thresh",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Thresh.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26720,
+      "status": "downloaded"
+    },
+    {
+      "id": "tristana",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Tristana.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30313,
+      "status": "downloaded"
+    },
+    {
+      "id": "trundle",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Trundle.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28260,
+      "status": "downloaded"
+    },
+    {
+      "id": "tryndamere",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Tryndamere.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 31840,
+      "status": "downloaded"
+    },
+    {
+      "id": "twisted-fate",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/TwistedFate.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24949,
+      "status": "downloaded"
+    },
+    {
+      "id": "twitch",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Twitch.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28474,
+      "status": "downloaded"
+    },
+    {
+      "id": "udyr",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Udyr.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29169,
+      "status": "downloaded"
+    },
+    {
+      "id": "urgot",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Urgot.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25786,
+      "status": "downloaded"
+    },
+    {
+      "id": "varus",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Varus.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28137,
+      "status": "downloaded"
+    },
+    {
+      "id": "vayne",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Vayne.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28367,
+      "status": "downloaded"
+    },
+    {
+      "id": "veigar",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Veigar.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26807,
+      "status": "downloaded"
+    },
+    {
+      "id": "velkoz",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Velkoz.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29187,
+      "status": "downloaded"
+    },
+    {
+      "id": "vex",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Vex.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29332,
+      "status": "downloaded"
+    },
+    {
+      "id": "vi",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Vi.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 33358,
+      "status": "downloaded"
+    },
+    {
+      "id": "viego",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Viego.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28601,
+      "status": "downloaded"
+    },
+    {
+      "id": "viktor",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Viktor.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 30530,
+      "status": "downloaded"
+    },
+    {
+      "id": "vladimir",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Vladimir.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24626,
+      "status": "downloaded"
+    },
+    {
+      "id": "volibear",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Volibear.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29127,
+      "status": "downloaded"
+    },
+    {
+      "id": "warwick",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Warwick.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24895,
+      "status": "downloaded"
+    },
+    {
+      "id": "wukong",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/MonkeyKing.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 29161,
+      "status": "downloaded"
+    },
+    {
+      "id": "xayah",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Xayah.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26882,
+      "status": "downloaded"
+    },
+    {
+      "id": "xerath",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Xerath.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 24656,
+      "status": "downloaded"
+    },
+    {
+      "id": "xin-zhao",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/XinZhao.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 35410,
+      "status": "downloaded"
+    },
+    {
+      "id": "yasuo",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Yasuo.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28213,
+      "status": "downloaded"
+    },
+    {
+      "id": "yone",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Yone.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26864,
+      "status": "downloaded"
+    },
+    {
+      "id": "yorick",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Yorick.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26344,
+      "status": "downloaded"
+    },
+    {
+      "id": "yunara",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Yunara.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 39524,
+      "status": "downloaded"
+    },
+    {
+      "id": "yuumi",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Yuumi.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28605,
+      "status": "downloaded"
+    },
+    {
+      "id": "zaahen",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zaahen.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 40550,
+      "status": "downloaded"
+    },
+    {
+      "id": "zac",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zac.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 25794,
+      "status": "downloaded"
+    },
+    {
+      "id": "zed",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zed.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28879,
+      "status": "downloaded"
+    },
+    {
+      "id": "zeri",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zeri.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28570,
+      "status": "downloaded"
+    },
+    {
+      "id": "ziggs",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Ziggs.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 28542,
+      "status": "downloaded"
+    },
+    {
+      "id": "zilean",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zilean.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 32671,
+      "status": "downloaded"
+    },
+    {
+      "id": "zoe",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zoe.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 27849,
+      "status": "downloaded"
+    },
+    {
+      "id": "zyra",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.20.1/img/champion/Zyra.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 26347,
+      "status": "downloaded"
+    }
+  ]
+}

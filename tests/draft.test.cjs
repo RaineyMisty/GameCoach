@@ -47,10 +47,24 @@ test('role slots round trip through local storage and exported user backups', ()
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), reloaded);
   assert.deepEqual(plain(reloaded.window.GCStore.current().draft), backup.user.draft);
 });
-test('official roster has searchable names, supported role filters, unique ids and local portraits', () => {
+test('official rosters have searchable names, supported roles and local square portraits from Riot', () => {
   const context = { window: {} }; vm.createContext(context); for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   const roster = context.window.GAMECOACH_DATA.champions; assert.ok(roster.length >= 142); assert.equal(new Set(roster.map(hero => hero.id)).size, roster.length);
-  for (const hero of roster) { assert.ok(hero.name && hero.englishName && hero.title); assert.ok(hero.roles.length && hero.roles.every(role => ['top', 'jungle', 'mid', 'adc', 'support'].includes(role))); assert.ok(fs.statSync(path.join(root, 'frontend', hero.portrait)).size > 500); }
+  const manifests = Object.fromEntries(['lol', 'lolm'].map(id => [id, JSON.parse(fs.readFileSync(path.join(root, 'resources', id, 'champion-icons/sources.json'), 'utf8'))]));
+  for (const game of context.window.GameCoachGames.list) for (const hero of game.champions) {
+    assert.ok(hero.name && hero.englishName && hero.title);
+    assert.ok(hero.roles.length && hero.roles.every(role => ['top', 'jungle', 'mid', 'adc', 'support'].includes(role)));
+    const folder = hero.portrait.startsWith('../resources/lolm/') ? 'lolm' : 'lol';
+    const source = manifests[folder].images.find(image => image.id === hero.id);
+    assert.ok(source, `Missing source record for ${hero.id}`);
+    assert.equal(new URL(source.source).hostname, folder === 'lolm' ? 'game.gtimg.cn' : 'ddragon.leagueoflegends.com');
+    assert.equal(source.status, 'downloaded'); assert.equal(source.source, hero.sourcePortrait);
+    const bytes = fs.readFileSync(path.join(root, 'frontend', hero.portrait));
+    assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    const width = bytes.readUInt32BE(16), height = bytes.readUInt32BE(20);
+    assert.equal(width, height); assert.ok([120, 128].includes(width));
+    assert.equal(width, source.width); assert.equal(height, source.height);
+  }
   for (const id of ['karma', 'lulu', 'nami', 'leona', 'jinx', 'caitlyn', 'akali', 'master-yi', 'malphite', 'pantheon', 'ahri', 'garen']) assert.ok(roster.some(hero => hero.id === id));
 });
 
@@ -103,9 +117,56 @@ test('BP disallows banned picks and picked bans and can reorder each group witho
   assert.throws(() => ops.assignBan(bp, 'ahri', { side: 'ally', index: 1, kind: 'ban' }), /已选/);
   const moved = ops.move(bp, { side: 'enemy', index: 0, kind: 'ban' }, { side: 'ally', index: 3, kind: 'ban' });
   assert.equal(moved.bans.enemy[0], null); assert.equal(moved.bans.ally[3], 'lulu'); assert.equal(moved.ally[0], 'ahri');
-  assert.throws(() => ops.move(bp, { side: 'ally', index: 0 }, { side: 'enemy', index: 0, kind: 'ban' }), /不能直接交换/);
+  const swapped = ops.move(bp, { side: 'ally', index: 0 }, { side: 'enemy', index: 0, kind: 'ban' });
+  assert.equal(swapped.ally[0], 'lulu'); assert.equal(swapped.bans.enemy[0], 'ahri');
+  assert.equal(bp.ally[0], 'ahri'); assert.equal(bp.bans.enemy[0], 'lulu');
   const mirrorAttempt = ops.assign(bp, 'ahri', { side: 'enemy', index: 2 });
   assert.equal(ops.count(mirrorAttempt), 1); assert.equal(mirrorAttempt.ally[0], null); assert.equal(mirrorAttempt.enemy[2], 'ahri');
+});
+
+test('dragging between occupied ban and pick slots swaps both heroes and keeps every other position', () => {
+  const ops = setup(); let bp = ops.setBPMode(ops.empty('lol'), true);
+  bp = ops.assign(bp, 'ahri', { side: 'ally', index: 0 });
+  bp = ops.assign(bp, 'garen', { side: 'enemy', index: 4 });
+  bp = ops.assignBan(bp, 'lulu', { side: 'ally', index: 1, kind: 'ban' });
+  bp = ops.assignBan(bp, 'jinx', { side: 'enemy', index: 2, kind: 'ban' });
+  for (const side of ['ally', 'enemy']) {
+    const pick = { side: 'ally', index: 0 }; const ban = { side, index: side === 'ally' ? 1 : 2, kind: 'ban' };
+    const banned = bp.bans[side][ban.index];
+    for (const [from, to] of [[pick, ban], [ban, pick]]) {
+      const swapped = ops.move(bp, from, to);
+      const expected = plain(bp); expected.ally[0] = banned; expected.bans[side][ban.index] = 'ahri';
+      assert.deepEqual(plain(swapped), expected);
+      assert.deepEqual(plain(ops.move(swapped, to, from)), plain(bp));
+      assert.equal(ops.count(swapped), 2); assert.equal(ops.count(swapped, undefined, 'ban'), 2);
+    }
+  }
+});
+
+test('ban-pick moves into empty slots change status without dropping heroes and resume the earliest hole', () => {
+  const ops = setup(); let bp = ops.setBPMode(ops.setRule(ops.empty(), 'three-ally'), true);
+  bp = ops.assign(bp, 'ahri', { side: 'enemy', index: 4 });
+  bp = ops.assignBan(bp, 'lulu', { side: 'ally', index: 0, kind: 'ban' });
+  const picked = ops.move(bp, { side: 'ally', index: 0, kind: 'ban' }, { side: 'ally', index: 4 });
+  assert.equal(picked.ally[4], 'lulu'); assert.equal(picked.bans.ally[0], null); assert.equal(picked.enemy[4], 'ahri');
+  assert.deepEqual(plain(ops.nextAction(picked).slot), { side: 'ally', index: 0, kind: 'ban' });
+  const banned = ops.move(bp, { side: 'enemy', index: 4 }, { side: 'enemy', index: 2, kind: 'ban' });
+  assert.equal(banned.enemy[4], null); assert.equal(banned.bans.enemy[2], 'ahri'); assert.equal(banned.bans.ally[0], 'lulu');
+  assert.equal(ops.count(banned) + ops.count(banned, undefined, 'ban'), 2);
+  assert.equal(bp.enemy[4], 'ahri'); assert.equal(bp.bans.enemy[2], null);
+});
+
+test('cross-group moves require BP mode and reject only out-of-range ban slots without changing the draft', () => {
+  const ops = setup(); let bp = ops.setBPMode(ops.empty(), true);
+  bp = ops.assign(bp, 'ahri', { side: 'ally', index: 4 });
+  bp = ops.assignBan(bp, 'lulu', { side: 'enemy', index: 4, kind: 'ban' });
+  const three = ops.setRule(bp, 'three-enemy'); const original = plain(three);
+  assert.throws(() => ops.move(three, { side: 'enemy', index: 4, kind: 'ban' }, { side: 'ally', index: 0 }), /没有这个禁用位/);
+  assert.throws(() => ops.move(three, { side: 'ally', index: 4 }, { side: 'enemy', index: 4, kind: 'ban' }), /没有这个禁用位/);
+  assert.deepEqual(plain(three), original);
+  const normal = ops.setBPMode(bp, false);
+  assert.throws(() => ops.move(normal, { side: 'ally', index: 4 }, { side: 'enemy', index: 0, kind: 'ban' }), /开启 BP/);
+  assert.throws(() => ops.move(normal, { side: 'enemy', index: 4, kind: 'ban' }, { side: 'ally', index: 0 }), /开启 BP/);
 });
 
 test('ban removal affects only its slot and reset keeps BP enabled while clearing all units', () => {

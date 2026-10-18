@@ -12,13 +12,15 @@ function setup(saved = new Map()) {
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   return { context, saved, games: context.window.GameCoachGames, ops: context.window.GameCoachDraft, store: context.window.GCStore };
 }
-test('game catalogues are distinct and share only the PC portrait directory', () => {
+test('game catalogues share common portraits and keep mobile-only portraits in the mobile directory', () => {
   const { games } = setup(); const pc = games.get('lol'); const mobile = games.get('lolm');
   assert.ok(pc.champions.length > mobile.champions.length); assert.equal(games.list.length, 2);
   assert.ok(pc.champions.some(hero => hero.id === 'anivia')); assert.ok(!mobile.champions.some(hero => hero.id === 'anivia'));
   assert.equal(pc.champions.find(hero => hero.id === 'ahri').portrait, mobile.champions.find(hero => hero.id === 'ahri').portrait);
+  const pcIds = new Set(pc.champions.map(hero => hero.id));
   for (const game of games.list) for (const hero of game.champions) {
-    assert.ok(hero.portrait.startsWith('../resources/lol/champion-icons/')); assert.ok(hero.roles.length);
+    const folder = pcIds.has(hero.id) ? 'lol' : 'lolm';
+    assert.equal(hero.portrait, `../resources/${folder}/champion-icons/${hero.id}.png`); assert.ok(hero.roles.length);
     assert.ok(fs.existsSync(path.join(root, 'resources', game.gameId, 'champions.js')));
   }
 });
