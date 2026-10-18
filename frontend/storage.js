@@ -24,7 +24,14 @@ window.GCStore = (() => {
     if (!message || !['user', 'coach'].includes(message.role)) return null;
     return { role: message.role, content: text(message.content, 6000),
       mode: message.mode === 'coach' ? 'coach' : 'quick', draft: cleanDraft(message.draft),
-      created: text(message.created, 80) };
+      created: text(message.created, 80),
+      id: safeId(message.id) ? message.id : undefined,
+      status: ['complete', 'cancelled', 'error'].includes(message.status) ? message.status : message.status === 'pending' ? 'cancelled' : 'complete',
+      provider: text(message.provider, 80), model: text(message.model, 120),
+      isDemo: message.isDemo !== false, reasoningEffort: text(message.reasoningEffort, 20),
+      finishReason: text(message.finishReason, 40),
+      timings: message.timings && Number.isFinite(message.timings.totalMs) && Number.isFinite(message.timings.firstDeltaMs)
+        ? { totalMs: Math.max(0, message.timings.totalMs), firstDeltaMs: Math.max(0, message.timings.firstDeltaMs) } : undefined };
   }
   function cleanUser(raw) {
     if (!raw || !safeId(raw.id) || !text(raw.name, 24).trim()) throw new Error('无效的用户备份文件。');

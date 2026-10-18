@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="./data.js" defer></script>
   <script src="./storage.js" defer></script>
+  <script src="../AI-Core/index.js" defer></script>
+  <script src="../AI-Core/groq.js" defer></script>
+  <script src="../Skill/index.js" defer></script>
+  <script src="./ai-settings.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -51,7 +55,7 @@
         <button type="button" data-prompt="如何判断我方阵容的配合是否合理？">阵容配合 <span>↗</span></button>
         <button type="button" data-prompt="帮我梳理一场对局的复盘思路。" data-mode="coach">赛后复盘 <span>↗</span></button>
       </div>
-      <p class="page-note">Wild Rift · 本地演示 · 尚未接入真实 AI</p>
+      <p class="page-note"><span id="provider-label">Wild Rift · 本地演示</span> · <button type="button" id="ai-settings-shortcut">连接 AI</button></p>
       <p id="status" class="status" role="status"></p>
     </div>
   </main>
@@ -73,6 +77,16 @@
     <div class="drawer-header"><div><p class="eyebrow">YOUR SPACE</p><h2 id="account-title">我的用户</h2></div><button class="icon-button" data-close="account-dialog" aria-label="关闭用户系统">×</button></div>
     <div class="drawer-content">
       <div class="user-summary"><span class="avatar large-avatar" id="account-avatar">我</span><div><h3 id="account-name"></h3><p>本地用户 · 独立资料与对话</p></div></div>
+      <section class="settings-section" id="ai-connection-section"><h3>AI 连接 <span id="ai-state" class="connection-badge">演示模式</span></h3>
+        <p id="ai-connection-status" class="subtle"></p>
+        <form id="ai-connection-form" autocomplete="off">
+          <label for="groq-api-key">Groq API Key<input id="groq-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴你自己的 API Key" required></label>
+          <button type="submit" class="primary-button">启用 Groq</button>
+        </form>
+        <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开并清除密钥</button><a class="text-button" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">申请 API Key ↗</a></div>
+        <p class="fine-print">仅供使用自己密钥的开发测试。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题及相关对话会发送给 Groq。Skill 当前仍为占位，BP 和玩家资料尚未自动加入模型输入。</p>
+        <p id="ai-feedback" class="form-status" role="status"></p>
+      </section>
       <section class="settings-section"><h3>切换用户</h3><div id="user-list" class="user-list"></div>
         <form id="create-user" class="inline-form"><label class="sr-only" for="new-username">新用户昵称</label><input id="new-username" maxlength="24" placeholder="新用户昵称" required autocomplete="off"><button type="submit" class="secondary-button">创建</button></form>
         <p class="fine-print">这是本机用户配置，不是在线账号或密码登录。</p>

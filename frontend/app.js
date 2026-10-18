@@ -5,7 +5,8 @@ const data = window.GAMECOACH_DATA;
 const state = { mode: 'quick', target: 'ally', sessionId: null, draft: { ally: [], enemy: [] }, question: '' };
 const profileForm = $('#profile');
 const champions = new Map(data.champions.map(c => [c.id, c]));
-const dimensions = ['开团能力', '保护能力', '伤害覆盖', '前排能力', '节奏配合'];
+let activeRequest = null;
+window.addEventListener('gamecoach:ai-changing', () => cancelRequest());
 function element(tag, className, text) {
   const el = document.createElement(tag);
   if (className) el.className = className;
@@ -32,6 +33,7 @@ $('#bp-open').onclick = $('#composer-bp').onclick = () => openDialog('bp-dialog'
 $('#account-open').onclick = () => openDialog('account-dialog');
 $('#history-open').onclick = () => openDialog('history-dialog');
 function setMode(mode) {
+  if (activeRequest && state.mode !== mode) cancelRequest();
   state.mode = mode;
   for (const value of ['quick', 'coach']) $('#' + value).setAttribute('aria-pressed', String(value === mode));
   $('#mode-hint').textContent = mode === 'quick' ? '简短建议，先给结论' : '展开思路，一起复盘';
@@ -80,11 +82,14 @@ $('#search').oninput = renderDraft;
 $('#reset').onclick = () => { state.draft = { ally: [], enemy: [] }; updateDraft(); };
 function resizeInput() {
   const question = $('#question'); question.style.height = 'auto'; question.style.height = Math.min(question.scrollHeight, 180) + 'px';
-  $('#send').disabled = !question.value.trim() && !state.draft.ally.length && !state.draft.enemy.length;
+  $('#send').disabled = !activeRequest && !question.value.trim() && !state.draft.ally.length && !state.draft.enemy.length;
+  $('#send').textContent = activeRequest ? '■' : '↑';
+  $('#send').setAttribute('aria-label', activeRequest ? '停止生成' : '发送问题');
+  $('#send').title = activeRequest ? '停止生成' : '发送（Enter）';
 }
 $('#question').oninput = () => { state.question = $('#question').value; resizeInput(); };
 $('#question').onkeydown = e => {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#chat-form').requestSubmit(); }
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && !activeRequest) { e.preventDefault(); $('#chat-form').requestSubmit(); }
 };
 for (const prompt of document.querySelectorAll('[data-prompt]')) prompt.onclick = () => {
   if (prompt.dataset.mode) setMode(prompt.dataset.mode);
@@ -103,22 +108,13 @@ function messageElement(message) {
     return wrapper;
   }
   wrapper.append(element('span', 'message-logo', '✦'));
+  if (message.id) wrapper.id = message.id;
   const body = element('div', 'reply-body');
-  const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', '演示回复')); body.append(heading);
-  body.append(element('p', 'reply-text', message.content));
-  const suggestions = element('ul', 'reply-list');
-  for (const text of ['根据英雄池选择熟悉的英雄。', '选齐双方阵容，再讨论团队配合。']) suggestions.append(element('li', '', '演示：' + text));
-  body.append(suggestions);
-  const complete = message.draft.ally.length === 5 && message.draft.enemy.length === 5;
-  const details = element('details', 'score-details');
-  details.append(element('summary', '', complete ? '阵容评分 · 50 / 100（演示）' : '阵容评分 · 等待完整阵容'));
-  const grid = element('div', 'score-grid');
-  for (const dimension of dimensions) {
-    const row = element('span', '', dimension); row.append(element('strong', '', complete ? '50' : '待评估')); grid.append(row);
-  }
-  details.append(grid, element('p', '', '固定规则 draft-demo-v1 · 完整阵容固定为 50 分，不代表真实实力或胜率。'));
-  body.append(details);
-  if (message.mode === 'quick') {
+  const label = message.status === 'pending' ? '生成中' : message.status === 'cancelled' ? '已停止' : message.status === 'error' ? '调用失败' : message.isDemo !== false ? '演示回复' : 'AI 回复';
+  const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', label)); body.append(heading);
+  body.append(element('p', 'reply-text', message.content || (message.status === 'pending' ? '正在生成…' : message.status === 'cancelled' ? '已停止生成。' : '没有回复内容。')));
+  if (message.finishReason === 'length') body.append(element('p', 'message-meta', '已达到本次生成上限，可以继续追问。'));
+  if (message.mode === 'quick' && (!message.status || message.status === 'complete')) {
     const actions = element('div', 'reply-actions');
     actions.append(button('深入解释 ↗', '', () => { state.draft = structuredClone(message.draft); updateDraft(); setMode('coach'); send('请进一步解释这套阵容的配合与复盘思路。'); }));
     body.append(actions);
@@ -132,7 +128,17 @@ function renderConversation() {
   $('#workspace').classList.toggle('has-chat', hasChat);
   if (hasChat) for (const message of session.messages) $('#messages').append(messageElement(message));
 }
-function send(override) {
+function cancelRequest() {
+  const request = activeRequest;
+  if (!request) return;
+  activeRequest = null;
+  request.controller.abort();
+  request.reply.status = 'cancelled';
+  if (!request.reply.content) request.reply.content = '已停止生成。';
+  store.persist(); resizeInput(); renderConversation();
+}
+async function send(override) {
+  if (activeRequest) return;
   const content = (override || $('#question').value).trim();
   if (!content && !state.draft.ally.length && !state.draft.enemy.length) { $('#question').focus(); return; }
   if (content.length > 4000) { notice('问题请控制在 4000 字以内。'); return; }
@@ -143,23 +149,57 @@ function send(override) {
   }
   const created = new Date().toISOString();
   const draft = structuredClone(state.draft);
-  session.messages.push({ role: 'user', content: content || '请分析这套阵容。', mode: state.mode, draft, created });
-  const reply = state.mode === 'quick'
-    ? '优先检查前排、控制和保护是否完整。\n\n当前是界面演示，尚未接入真实 AI，不会根据你的问题或英雄做实际推理。'
-    : '可以从开团、保护、伤害覆盖、前排和节奏这五个角度梳理思路，再结合你的英雄池与打法偏好讨论。\n\n当前是界面演示，尚未接入真实 AI；这里展示的是示例回复。';
-  session.messages.push({ role: 'coach', content: reply, mode: state.mode, draft: structuredClone(draft), created });
-  session.messages = session.messages.slice(-100);
+  const mode = state.mode;
+  // Content and execution options travel separately. The placeholder Skill does
+  // not enrich the messages with game context yet.
+  const input = session.messages.filter(m => m.role === 'user' || !m.status || m.status === 'complete').slice(-20)
+    .map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.content }));
+  input.push({ role: 'user', content: content || '请分析这套阵容。' });
+  const context = { draft: structuredClone(draft), profile: structuredClone(store.current().profile) };
+  session.messages.push({ role: 'user', content: input.at(-1).content, mode, draft, created });
+  const reply = { id: 'reply-' + store.uuid(), role: 'coach', content: '', mode, draft: structuredClone(draft), created, status: 'pending' };
+  session.messages.push(reply);
+  const request = { controller: new AbortController(), reply, userId: store.current().id, sessionId: session.id };
+  activeRequest = request;
   store.persist(); $('#question').value = ''; state.question = ''; resizeInput(); renderConversation();
   requestAnimationFrame(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); $('#question').focus({ preventScroll: true }); });
+  const isCurrent = () => activeRequest === request && store.current().id === request.userId && state.sessionId === request.sessionId;
+  try {
+    const response = await window.GameCoachSkill.run(input, {
+      context, mode, signal: request.controller.signal,
+      onDelta(delta) {
+        if (!isCurrent()) return;
+        const follow = window.scrollY + window.innerHeight >= document.body.scrollHeight - 140;
+        reply.content += delta;
+        const text = document.getElementById(reply.id)?.querySelector('.reply-text');
+        if (text) text.textContent = reply.content;
+        if (follow) window.scrollTo({ top: document.body.scrollHeight });
+      },
+    });
+    if (!isCurrent()) return;
+    reply.content = response.content;
+    reply.provider = response.provider; reply.model = response.model; reply.isDemo = response.isDemo;
+    reply.reasoningEffort = response.reasoningEffort; reply.status = 'complete'; reply.timings = response.timings; reply.finishReason = response.finishReason;
+  } catch (error) {
+    if (!isCurrent()) return;
+    reply.status = error.name === 'AbortError' ? 'cancelled' : 'error';
+    reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? '已停止生成。' : '生成失败：' + error.message);
+  } finally {
+    if (isCurrent()) {
+      activeRequest = null; session.messages = session.messages.slice(-100);
+      store.persist(); resizeInput(); renderConversation();
+    }
+  }
 }
-$('#chat-form').onsubmit = e => { e.preventDefault(); send(); };
-function newChat() { state.sessionId = null; $('#question').value = ''; state.question = ''; resizeInput(); renderConversation(); $('#question').focus(); window.scrollTo({ top: 0 }); }
+$('#chat-form').onsubmit = e => { e.preventDefault(); if (activeRequest) cancelRequest(); else send(); };
+function newChat() { cancelRequest(); state.sessionId = null; $('#question').value = ''; state.question = ''; resizeInput(); renderConversation(); $('#question').focus(); window.scrollTo({ top: 0 }); }
 $('#new-chat').onclick = newChat;
 $('#history-new').onclick = () => { $('#history-dialog').close(); newChat(); };
 function renderHistory() {
   const list = $('#history-list'); list.replaceChildren();
   for (const session of [...store.current().sessions].reverse()) {
     const control = button(session.title, 'history-item', () => {
+      cancelRequest();
       state.sessionId = session.id;
       const last = session.messages.at(-1);
       if (last) { state.draft = structuredClone(last.draft); setMode(last.mode); updateDraft(); }
@@ -175,7 +215,7 @@ function loadCurrentUser() {
   state.draft = structuredClone(store.current().draft); state.target = 'ally';
   state.sessionId = store.current().sessions.at(-1)?.id || null;
   $('#question').value = ''; state.question = ''; $('#search').value = '';
-  setMode('quick'); renderDraft(); resizeInput(); renderConversation(); renderAccount();
+  setMode(currentSession()?.messages.at(-1)?.mode || 'quick'); renderDraft(); resizeInput(); renderConversation(); renderAccount();
 }
 function renderAccount() {
   const user = store.current();
@@ -187,6 +227,7 @@ function renderAccount() {
   const list = $('#user-list'); list.replaceChildren();
   for (const entry of store.users()) {
     const control = button(entry.name, 'user-choice', () => {
+      cancelRequest();
       store.select(entry.id); loadCurrentUser(); $('#profile-status').textContent = ''; $('#account-status').textContent = '已切换到 ' + entry.name;
     });
     control.setAttribute('aria-pressed', String(entry.id === user.id));
@@ -195,6 +236,7 @@ function renderAccount() {
 }
 $('#create-user').onsubmit = e => {
   e.preventDefault();
+  cancelRequest();
   try { store.create($('#new-username').value); $('#new-username').value = ''; loadCurrentUser(); $('#account-status').textContent = '新用户已创建，资料和对话独立保存。'; }
   catch (error) { $('#account-status').textContent = error.message; }
 };
@@ -207,6 +249,7 @@ profileForm.onsubmit = e => {
   $('#profile-status').textContent = saved ? '已保存当前用户资料。' : '当前页面已更新，请连接文件夹或导出以保存。';
 };
 $('#connect-folder').onclick = async () => {
+  cancelRequest();
   $('#connect-folder').disabled = true;
   try {
     const name = await store.connectFolder(); loadCurrentUser();
@@ -225,7 +268,8 @@ $('#import-user').onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
   try {
     if (file.size > 10_000_000) throw new Error('备份文件请控制在 10 MB 以内。');
-    store.importBackup(JSON.parse(await file.text())); loadCurrentUser(); $('#account-status').textContent = '已导入为独立用户，原有用户未被覆盖。';
+    const backup = JSON.parse(await file.text()); cancelRequest();
+    store.importBackup(backup); loadCurrentUser(); $('#account-status').textContent = '已导入为独立用户，原有用户未被覆盖。';
   } catch (error) { $('#account-status').textContent = error instanceof SyntaxError ? '无法解析 JSON，请选择有效的用户备份。' : error.message; }
   e.target.value = '';
 };
