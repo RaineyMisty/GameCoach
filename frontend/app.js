@@ -2,10 +2,13 @@
 const $ = selector => document.querySelector(selector);
 const store = window.GCStore;
 const data = window.GAMECOACH_DATA;
-const state = { mode: 'quick', target: 'ally', sessionId: null, draft: { ally: [], enemy: [] }, question: '' };
+const draftOps = window.GameCoachDraft;
+const state = { mode: 'quick', sessionId: null, draft: draftOps.empty(), question: '' };
 const profileForm = $('#profile');
 const champions = new Map(data.champions.map(c => [c.id, c]));
 let activeRequest = null;
+const draftUI = window.GameCoachDraftUI.create({ champions: data.champions, getDraft: () => state.draft,
+  onChange(draft) { state.draft = draft; updateDraft(); }, onOpen: () => openDialog('bp-dialog') });
 window.addEventListener('gamecoach:ai-changing', () => cancelRequest());
 function element(tag, className, text) {
   const el = document.createElement(tag);
@@ -43,46 +46,10 @@ $('#coach').onclick = () => setMode('coach');
 function updateDraft() {
   store.current().draft = structuredClone(state.draft); store.persist(); renderDraft();
 }
-function renderDraft() {
-  const count = state.draft.ally.length + state.draft.enemy.length;
-  $('#bp-count').textContent = count + '/10';
-  $('#draft-label').textContent = count ? `我方 ${state.draft.ally.length} · 敌方 ${state.draft.enemy.length}` : '添加阵容';
-  $('#composer-bp').classList.toggle('active', count > 0);
-  for (const side of ['ally', 'enemy']) {
-    $('#' + side + '-target').setAttribute('aria-pressed', String(state.target === side));
-    $('#' + side + '-count').textContent = state.draft[side].length + ' / 5';
-    const slots = $('#' + side); slots.replaceChildren();
-    for (const id of state.draft[side]) {
-      const champion = champions.get(id);
-      const remove = button('', '', () => { state.draft[side] = state.draft[side].filter(x => x !== id); updateDraft(); });
-      remove.setAttribute('aria-label', '移除' + (side === 'ally' ? '我方' : '敌方') + champion.name);
-      const img = element('img'); img.src = champion.portrait; img.alt = '';
-      remove.append(img, element('span', '', champion.name)); slots.append(remove);
-    }
-    for (let i = state.draft[side].length; i < 5; i++) slots.append(element('span', 'slot', '＋'));
-  }
-  const query = $('#search').value.trim().toLowerCase();
-  const pool = $('#champions'); pool.replaceChildren();
-  for (const champion of data.champions.filter(c => (c.id + c.name).toLowerCase().includes(query))) {
-    const pick = button('', 'champion', () => {
-      if (state.draft[state.target].length >= 5 || state.draft.ally.includes(champion.id) || state.draft.enemy.includes(champion.id)) return;
-      state.draft[state.target].push(champion.id); updateDraft();
-    });
-    pick.setAttribute('aria-label', '选择' + champion.name);
-    pick.disabled = state.draft[state.target].length >= 5 || state.draft.ally.includes(champion.id) || state.draft.enemy.includes(champion.id);
-    const img = element('img'); img.src = champion.portrait; img.alt = '';
-    pick.append(img, element('span', '', champion.name)); pool.append(pick);
-  }
-  if (!pool.childElementCount) pool.append(element('p', 'subtle', '没有找到匹配的演示英雄。'));
-  resizeInput();
-}
-$('#ally-target').onclick = () => { state.target = 'ally'; renderDraft(); };
-$('#enemy-target').onclick = () => { state.target = 'enemy'; renderDraft(); };
-$('#search').oninput = renderDraft;
-$('#reset').onclick = () => { state.draft = { ally: [], enemy: [] }; updateDraft(); };
+function renderDraft() { draftUI.render(); resizeInput(); }
 function resizeInput() {
   const question = $('#question'); question.style.height = 'auto'; question.style.height = Math.min(question.scrollHeight, 180) + 'px';
-  $('#send').disabled = !activeRequest && !question.value.trim() && !state.draft.ally.length && !state.draft.enemy.length;
+  $('#send').disabled = !activeRequest && !question.value.trim() && !draftOps.count(state.draft);
   $('#send').textContent = activeRequest ? '■' : '↑';
   $('#send').setAttribute('aria-label', activeRequest ? '停止生成' : '发送问题');
   $('#send').title = activeRequest ? '停止生成' : '发送（Enter）';
@@ -104,7 +71,7 @@ function messageElement(message) {
   const wrapper = element('article', 'message message-' + message.role);
   if (message.role === 'user') {
     wrapper.append(element('p', 'user-bubble', message.content));
-    if (message.draft.ally.length || message.draft.enemy.length) wrapper.append(element('p', 'message-meta', draftDescription(message.draft)));
+    if (draftOps.count(message.draft)) wrapper.append(element('p', 'message-meta', draftDescription(message.draft)));
     return wrapper;
   }
   wrapper.append(element('span', 'message-logo', '✦'));
@@ -143,7 +110,7 @@ function cancelRequest() {
 async function send(override) {
   if (activeRequest) return;
   const content = (override || $('#question').value).trim();
-  if (!content && !state.draft.ally.length && !state.draft.enemy.length) { $('#question').focus(); return; }
+  if (!content && !draftOps.count(state.draft)) { $('#question').focus(); return; }
   if (content.length > 4000) { notice('问题请控制在 4000 字以内。'); return; }
   let session = currentSession();
   if (!session) {
@@ -221,7 +188,7 @@ function renderHistory() {
   if (!list.childElementCount) list.append(element('p', 'empty-history', '还没有对话。聊聊你的第一场对局吧。'));
 }
 function loadCurrentUser() {
-  state.draft = structuredClone(store.current().draft); state.target = 'ally';
+  state.draft = structuredClone(store.current().draft);
   state.sessionId = store.current().sessions.at(-1)?.id || null;
   $('#question').value = ''; state.question = ''; $('#search').value = '';
   setMode(currentSession()?.messages.at(-1)?.mode || 'quick'); renderDraft(); resizeInput(); renderConversation(); renderAccount();

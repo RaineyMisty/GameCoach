@@ -7,10 +7,8 @@ window.GCStore = (() => {
   const defaults = () => ({ rank: '', level: '', role: 'support', championPool: [], preferences: '' });
   const safeId = value => typeof value === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(value);
   const text = (value, max = 1000) => typeof value === 'string' ? value.slice(0, max) : '';
-  const validTeam = value => Array.isArray(value) ? [...new Set(value.filter(id => window.GAMECOACH_DATA.champions.some(c => c.id === id)))].slice(0, 5) : [];
   function cleanDraft(draft) {
-    const ally = validTeam(draft?.ally);
-    return { ally, enemy: validTeam(draft?.enemy).filter(id => !ally.includes(id)) };
+    return window.GameCoachDraft.normalize(draft, id => window.GAMECOACH_DATA.champions.some(champion => champion.id === id));
   }
   function cleanProfile(p) {
     const result = defaults();
@@ -42,7 +40,7 @@ window.GCStore = (() => {
     return { id: raw.id, name: raw.name.trim().slice(0, 24), profile: cleanProfile(raw.profile),
       draft: cleanDraft(raw.draft), sessions, updatedAt: text(raw.updatedAt, 80) || new Date().toISOString() };
   }
-  const newUser = name => ({ id: uuid(), name: name.trim(), profile: defaults(), draft: { ally: [], enemy: [] }, sessions: [], updatedAt: new Date().toISOString() });
+  const newUser = name => ({ id: uuid(), name: name.trim(), profile: defaults(), draft: window.GameCoachDraft.empty(), sessions: [], updatedAt: new Date().toISOString() });
   let database;
   let browserAvailable = true;
   let directory = null;

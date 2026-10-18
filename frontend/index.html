@@ -7,6 +7,7 @@
   <title>GameCoach · 你的游戏教练</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./data.js" defer></script>
+  <script src="./draft.js" defer></script>
   <script src="./storage.js" defer></script>
   <script src="../AI-Core/index.js" defer></script>
   <script src="../AI-Core/gemini.js" defer></script>
@@ -15,6 +16,7 @@
   <script src="./vendor/marked.umd.js" defer></script>
   <script src="./vendor/purify.min.js" defer></script>
   <script src="./markdown.js" defer></script>
+  <script src="./draft-ui.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -34,6 +36,7 @@
     </div>
   </header>
 
+  <div class="app-layout">
   <main class="workspace" id="workspace">
     <section class="conversation" id="conversation" aria-label="教练对话">
       <div class="welcome" id="welcome">
@@ -62,17 +65,26 @@
       <p id="status" class="status" role="status"></p>
     </div>
   </main>
+  <aside class="draft-summary" aria-label="当前阵容">
+    <div class="summary-heading"><h2>当前阵容 <span id="summary-count">0/10</span></h2><button type="button" id="summary-edit">编辑 ↗</button></div>
+    <details id="summary-details" open><summary>查看双方已选英雄</summary>
+      <div class="summary-team"><h3>我方</h3><div id="summary-ally" class="summary-slots"></div></div>
+      <div class="summary-team summary-enemy"><h3>敌方</h3><div id="summary-enemy" class="summary-slots"></div></div>
+      <p class="summary-help">点击任意位置即可调整</p>
+    </details>
+  </aside>
+  </div>
 
-  <dialog id="bp-dialog" class="drawer" aria-labelledby="bp-title">
-    <div class="drawer-header"><div><p class="eyebrow">DRAFT BUILDER</p><h2 id="bp-title">选择你的阵容</h2></div><button class="icon-button" data-close="bp-dialog" aria-label="关闭 BP">×</button></div>
-    <div class="drawer-content">
-      <p class="subtle">选定队伍后点击英雄。点击已选英雄可以移除。</p>
-      <div class="team-card"><div class="team-heading"><button id="ally-target" aria-pressed="true">我方队伍</button><span id="ally-count">0 / 5</span></div><div id="ally" class="slots"></div></div>
-      <div class="team-card enemy-card"><div class="team-heading"><button id="enemy-target" aria-pressed="false">敌方队伍</button><span id="enemy-count">0 / 5</span></div><div id="enemy" class="slots"></div></div>
-      <label class="search-label" for="search">搜索英雄</label><input id="search" class="search-input" placeholder="英雄名称 / 英文 ID" autocomplete="off">
-      <div id="champions" class="champions"></div>
-      <p class="fine-print">12 个演示英雄 · 占位头像 · 未模拟禁用和选人顺序</p>
+  <dialog id="bp-dialog" class="drawer bp-editor" aria-labelledby="bp-title">
+    <div class="drawer-header"><div><p class="eyebrow">LINEUP STUDIO</p><h2 id="bp-title">编辑阵容</h2></div><button class="icon-button" data-close="bp-dialog" aria-label="关闭 BP">×</button></div>
+    <div class="draft-selection">
+      <div class="draft-side-label"><span>我方</span><span id="ally-count">0/5</span></div><div id="ally" class="draft-slots"></div>
+      <div class="draft-side-label enemy-label"><span>敌方</span><span id="enemy-count">0/5</span></div><div id="enemy" class="draft-slots"></div>
+      <p id="pick-hint" class="pick-hint" role="status"></p>
+      <label class="sr-only" for="search">搜索英雄</label><input id="search" type="search" class="search-input" placeholder="搜索英雄、称号或英文名…" autocomplete="off">
+      <nav id="hero-filters" class="hero-filters" aria-label="英雄位置分类"></nav>
     </div>
+    <div class="drawer-content champion-browser"><div class="champion-count-row"><span id="hero-count"></span><span>位置仅供筛选，可自由调整</span></div><div id="champions" class="champions"></div></div>
     <div class="drawer-footer"><button id="reset" class="text-button">清空阵容</button><button class="primary-button" data-close="bp-dialog">完成选择</button></div>
   </dialog>
 
