@@ -1,16 +1,17 @@
 'use strict';
 window.GameCoachDraft = (() => {
+  const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   const roles = Object.freeze([
     { id: 'top', name: '上单' }, { id: 'jungle', name: '打野' }, { id: 'mid', name: '中单' },
     { id: 'adc', name: '射手' }, { id: 'support', name: '辅助' },
-  ].map(Object.freeze));
+  ].map(role => Object.freeze({ id: role.id, get name() { return tr(role.name); } })));
   const sides = ['ally', 'enemy'];
   const rules = Object.freeze([
     { type: 'five', name: '5 禁后 5 选', bans: 5 },
     { type: 'split', name: '分段 3 禁 → 3 选 → 2 禁 → 2 选', bans: 5 },
     { type: 'three', name: '3 禁后 5 选', bans: 3 },
   ].flatMap(rule => sides.map(first => Object.freeze({ ...rule, id: rule.type + '-' + first, first,
-    name: rule.name + ' · ' + (first === 'ally' ? '蓝方' : '红方') + '先选' }))));
+    get name() { return tr(rule.name) + ' · ' + (first === 'ally' ? tr("蓝方") : tr("红方")) + tr("先选"); } }))));
   const ruleFor = draft => rules.find(rule => rule.id === draft?.bpRule) || rules[0];
   const banLimit = draft => ruleFor(draft).bans;
   const gameIdFor = id => window.GameCoachGames ? window.GameCoachGames.resolve(id) : ['lol', 'lolm'].includes(id) ? id : 'lolm';
@@ -61,10 +62,10 @@ window.GameCoachDraft = (() => {
       }
     }
     if (rule.type === 'split') {
-      phase('ban', 'ABABAB', '第一轮禁用'); phase('pick', 'ABBAAB', '第一轮选人');
-      phase('ban', 'BABA', '第二轮禁用'); phase('pick', 'BAAB', '第二轮选人');
+      phase('ban', 'ABABAB', tr("第一轮禁用")); phase('pick', 'ABBAAB', tr("第一轮选人"));
+      phase('ban', 'BABA', tr("第二轮禁用")); phase('pick', 'BAAB', tr("第二轮选人"));
     } else {
-      phase('ban', 'AB'.repeat(rule.bans), '禁用阶段'); phase('pick', 'ABBAABBAAB', '选人阶段');
+      phase('ban', 'AB'.repeat(rule.bans), tr("禁用阶段")); phase('pick', 'ABBAABBAAB', tr("选人阶段"));
     }
     return result.map(action => ({ ...action, total: result.length }));
   }
@@ -83,30 +84,30 @@ window.GameCoachDraft = (() => {
     for (const side of sides) {
       const seen = draft.bpMode ? globalPicks : new Set();
       for (const id of draft[side].filter(Boolean)) {
-        if (seen.has(id)) throw new Error(draft.bpMode ? 'BP 模式双方不能选择重复英雄。' : '同一队不能出现重复英雄，请换一个位置。');
+        if (seen.has(id)) throw new Error(draft.bpMode ? tr("BP 模式双方不能选择重复英雄。") : tr("同一队不能出现重复英雄，请换一个位置。"));
         seen.add(id); globalPicks.add(id);
       }
     }
     const banned = new Set();
     for (const side of sides) for (const id of draft.bans[side].filter(Boolean)) {
-      if (globalPicks.has(id)) throw new Error('已选英雄不能被禁用。');
-      if (banned.has(id)) throw new Error('该英雄已经被禁用。');
+      if (globalPicks.has(id)) throw new Error(tr("已选英雄不能被禁用。"));
+      if (banned.has(id)) throw new Error(tr("该英雄已经被禁用。"));
       banned.add(id);
     }
   }
   function move(draft, from, to) {
-    if (!valid(from) || !valid(to)) throw new Error('无效的阵容位置。');
+    if (!valid(from) || !valid(to)) throw new Error(tr("无效的阵容位置。"));
     const result = normalize(draft); const banSlots = [from, to].filter(slot => kindOf(slot) === 'ban');
-    if (banSlots.length && !result.bpMode) throw new Error('请先开启 BP 模式。');
-    if (banSlots.some(slot => slot.index >= banLimit(result))) throw new Error('当前规则没有这个禁用位。');
+    if (banSlots.length && !result.bpMode) throw new Error(tr("请先开启 BP 模式。"));
+    if (banSlots.some(slot => slot.index >= banLimit(result))) throw new Error(tr("当前规则没有这个禁用位。"));
     const source = row(result, from.side, kindOf(from)); const target = row(result, to.side, kindOf(to));
     [source[from.index], target[to.index]] = [target[to.index], source[from.index]];
     assertLegal(result); return result;
   }
   function assign(draft, id, to) {
-    if (!valid(to) || kindOf(to) !== 'pick' || typeof id !== 'string' || !id) throw new Error('请选择英雄和位置。');
+    if (!valid(to) || kindOf(to) !== 'pick' || typeof id !== 'string' || !id) throw new Error(tr("请选择英雄和位置。"));
     const result = normalize(draft);
-    if (result.bpMode && activeBan(result, id)) throw new Error('该英雄已被禁用，不能在 BP 模式选择。');
+    if (result.bpMode && activeBan(result, id)) throw new Error(tr("该英雄已被禁用，不能在 BP 模式选择。"));
     const from = locate(result, id, result.bpMode ? undefined : to.side);
     if (from) return move(result, from, to);
     result[to.side][to.index] = id;
@@ -115,18 +116,18 @@ window.GameCoachDraft = (() => {
     assertLegal(result); return result;
   }
   function assignBan(draft, id, to) {
-    if (!valid(to) || kindOf(to) !== 'ban' || typeof id !== 'string' || !id) throw new Error('请选择禁用位和英雄。');
+    if (!valid(to) || kindOf(to) !== 'ban' || typeof id !== 'string' || !id) throw new Error(tr("请选择禁用位和英雄。"));
     const result = normalize(draft);
-    if (!result.bpMode) throw new Error('请先开启 BP 模式。');
-    if (to.index >= banLimit(result)) throw new Error('当前规则没有这个禁用位。');
-    if (locate(result, id)) throw new Error('已选英雄不能被禁用。');
+    if (!result.bpMode) throw new Error(tr("请先开启 BP 模式。"));
+    if (to.index >= banLimit(result)) throw new Error(tr("当前规则没有这个禁用位。"));
+    if (locate(result, id)) throw new Error(tr("已选英雄不能被禁用。"));
     const from = locate(result, id, undefined, 'ban');
     if (from && from.index < banLimit(result)) return move(result, from, to);
     if (from) result.bans[from.side][from.index] = null;
     result.bans[to.side][to.index] = id; assertLegal(result); return result;
   }
   function remove(draft, slot) {
-    if (!valid(slot)) throw new Error('无效的阵容位置。');
+    if (!valid(slot)) throw new Error(tr("无效的阵容位置。"));
     const result = normalize(draft); row(result, slot.side, kindOf(slot))[slot.index] = null; return result;
   }
   const setBPMode = (draft, enabled) => normalize({ ...draft, bpMode: enabled === true });

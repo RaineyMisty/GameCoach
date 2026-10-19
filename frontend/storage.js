@@ -1,6 +1,7 @@
 'use strict';
 // Local-only accounts. This is not server authentication.
 window.GCStore = (() => {
+  const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   const key = 'gamecoach-users-v2';
   const legacyKey = 'gamecoach-static-v1';
   const uuid = () => globalThis.crypto?.randomUUID?.() || 'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
@@ -51,7 +52,7 @@ window.GCStore = (() => {
         ? { totalMs: Math.max(0, message.timings.totalMs), firstDeltaMs: Math.max(0, message.timings.firstDeltaMs) } : undefined };
   }
   function cleanUser(raw) {
-    if (!raw || !safeId(raw.id) || !text(raw.name, 24).trim()) throw new Error('无效的用户备份文件。');
+    if (!raw || !safeId(raw.id) || !text(raw.name, 24).trim()) throw new Error(tr("无效的用户备份文件。"));
     const sessions = (Array.isArray(raw.sessions) ? raw.sessions : []).slice(-30).filter(s => s && safeId(s.id)).map(s => ({
       id: s.id, title: text(s.title, 80), created: text(s.created, 80),
       messages: (Array.isArray(s.messages) ? s.messages : []).slice(-100).map(cleanMessage).filter(Boolean),
@@ -81,9 +82,9 @@ window.GCStore = (() => {
       if (!users.length) throw new Error('Empty account store');
       database = { version: 2, activeId: users.some(u => u.id === raw.activeId) ? raw.activeId : users[0].id, users };
     }
-  } catch { browserAvailable = false; notify('浏览器中的用户数据无法读取，请导入备份；当前改动暂不覆盖原数据。'); }
+  } catch { browserAvailable = false; notify(tr("浏览器中的用户数据无法读取，请导入备份；当前改动暂不覆盖原数据。")); }
   if (!database) {
-    const user = newUser('我的用户');
+    const user = newUser(tr("我的用户"));
     // Keep the old storage untouched so migration is reversible.
     try {
       const old = JSON.parse(localStorage.getItem(legacyKey) || 'null');
@@ -92,12 +93,12 @@ window.GCStore = (() => {
         user.memory = window.GameCoachMemory.withProfile(user.memory, user.profile);
         const rows = Array.isArray(old.analyses) ? old.analyses.slice(-30) : [];
         user.sessions = rows.filter(r => r && r.input && r.result).map(row => ({
-          id: uuid(), title: text(row.input.question, 40) || '历史阵容分析', created: text(row.created, 80),
-          messages: [{ role: 'user', content: text(row.input.question, 4000) || '分析这套阵容。', mode: row.result.mode === 'coach' ? 'coach' : 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },
+          id: uuid(), title: text(row.input.question, 40) || tr("历史阵容分析"), created: text(row.created, 80),
+          messages: [{ role: 'user', content: text(row.input.question, 4000) || tr("分析这套阵容。"), mode: row.result.mode === 'coach' ? 'coach' : 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },
             { role: 'coach', content: text(row.result.summary, 6000), mode: row.result.mode === 'coach' ? 'coach' : 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) }],
         }));
       }
-    } catch { notify('旧版资料暂时无法读取，可通过导入 JSON 备份恢复。'); }
+    } catch { notify(tr("旧版资料暂时无法读取，可通过导入 JSON 备份恢复。")); }
     database = { version: 2, activeId: user.id, users: [user] };
   }
   const current = () => database.users.find(u => u.id === database.activeId);
@@ -117,19 +118,19 @@ window.GCStore = (() => {
     let ok = false;
     if (browserAvailable) {
       try { localStorage.setItem(key, JSON.stringify(database)); ok = true; }
-      catch { notify('浏览器无法保存数据。请导出备份，或连接本地用户文件夹。'); }
-    } else notify('浏览器存储不可用。请导出备份或连接本地文件夹保存。');
+      catch { notify(tr("浏览器无法保存数据。请导出备份，或连接本地用户文件夹。")); }
+    } else notify(tr("浏览器存储不可用。请导出备份或连接本地文件夹保存。"));
     if (directory && syncFolder) {
       const snapshot = JSON.parse(JSON.stringify(database));
       const dir = directory;
-      writeQueue = writeQueue.then(() => writeDatabase(dir, snapshot)).then(() => notify('已同步到本地用户文件夹。')).catch(() => notify('文件夹同步失败，浏览器记录仍保留。请重新连接目录或导出备份。'));
+      writeQueue = writeQueue.then(() => writeDatabase(dir, snapshot)).then(() => notify(tr("已同步到本地用户文件夹。"))).catch(() => notify(tr("文件夹同步失败，浏览器记录仍保留。请重新连接目录或导出备份。")));
     }
     return ok;
   }
   function create(name) {
     name = name.trim();
-    if (!name || name.length > 24) throw new Error('请输入 1–24 字的昵称。');
-    if (database.users.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('这个昵称已存在，请直接切换到该用户。');
+    if (!name || name.length > 24) throw new Error(tr("请输入 1–24 字的昵称。"));
+    if (database.users.some(u => u.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error(tr("这个昵称已存在，请直接切换到该用户。"));
     const user = newUser(name); database.users.push(user); database.activeId = user.id; persist(); return user;
   }
   function saveDraft(draft) {
@@ -137,13 +138,13 @@ window.GCStore = (() => {
     user.draft = cleaned; user.drafts[cleaned.gameId] = cleaned; persist(); return cleaned;
   }
   function selectGame(id) {
-    if (!window.GameCoachGames?.has(id)) throw new Error('这个游戏暂未接入。');
+    if (!window.GameCoachGames?.has(id)) throw new Error(tr("这个游戏暂未接入。"));
     // Carry the current lineup across games; target validation clears unavailable
     // heroes in place, without restoring an older per-game draft.
     return saveDraft({ ...current().draft, gameId: id });
   }
   function select(id) {
-    if (!database.users.some(u => u.id === id)) throw new Error('用户不存在。');
+    if (!database.users.some(u => u.id === id)) throw new Error(tr("用户不存在。"));
     database.activeId = id; persist({ touch: false });
   }
   function mergeUsers(users) {
@@ -155,7 +156,7 @@ window.GCStore = (() => {
     database.users = [...merged.values()];
   }
   async function connectFolder() {
-    if (!window.showDirectoryPicker) throw new Error('此浏览器不支持直接保存到文件夹，请在 Chrome 或 Edge 打开 HTTPS 网页；也可以使用导入 / 导出。');
+    if (!window.showDirectoryPicker) throw new Error(tr("此浏览器不支持直接保存到文件夹，请在 Chrome 或 Edge 打开 HTTPS 网页；也可以使用导入 / 导出。"));
     const chosen = await window.showDirectoryPicker({ id: 'gamecoach-users', mode: 'readwrite', startIn: 'documents' });
     // Drain writes to the previous folder before switching handles.
     await writeQueue;
@@ -163,19 +164,19 @@ window.GCStore = (() => {
     try {
       const handle = await chosen.getFileHandle('gamecoach-index.json');
       const file = await handle.getFile();
-      if (file.size > 2_000_000) throw new Error('用户索引文件过大。');
+      if (file.size > 2_000_000) throw new Error(tr("用户索引文件过大。"));
       manifest = JSON.parse(await file.text());
-    } catch (error) { if (error.name !== 'NotFoundError') throw new Error('无法读取用户文件夹，请检查 gamecoach-index.json；没有覆盖现有文件。'); }
+    } catch (error) { if (error.name !== 'NotFoundError') throw new Error(tr("无法读取用户文件夹，请检查 gamecoach-index.json；没有覆盖现有文件。")); }
     const imported = [];
     if (manifest) {
-      if (manifest.format !== 'gamecoach-index' || manifest.version !== 2 || !Array.isArray(manifest.users) || manifest.users.length > 200) throw new Error('文件夹不是有效的 GameCoach 用户目录。');
+      if (manifest.format !== 'gamecoach-index' || manifest.version !== 2 || !Array.isArray(manifest.users) || manifest.users.length > 200) throw new Error(tr("文件夹不是有效的 GameCoach 用户目录。"));
       for (const entry of manifest.users) {
-        if (!safeId(entry.id)) throw new Error('用户索引包含无效 ID，已停止连接。');
+        if (!safeId(entry.id)) throw new Error(tr("用户索引包含无效 ID，已停止连接。"));
         const handle = await chosen.getFileHandle(entry.id + '.json');
         const file = await handle.getFile();
-        if (file.size > 10_000_000) throw new Error('用户文件过大，已停止连接。');
+        if (file.size > 10_000_000) throw new Error(tr("用户文件过大，已停止连接。"));
         const raw = JSON.parse(await file.text());
-        if (raw.format !== 'gamecoach-user' || raw.version !== 2 || raw.user?.id !== entry.id) throw new Error('用户文件格式错误，已停止连接。');
+        if (raw.format !== 'gamecoach-user' || raw.version !== 2 || raw.user?.id !== entry.id) throw new Error(tr("用户文件格式错误，已停止连接。"));
         imported.push(cleanUser(raw.user));
       }
     }
@@ -189,19 +190,19 @@ window.GCStore = (() => {
     let user;
     if (raw?.format === 'gamecoach-user' && raw.version === 2) user = cleanUser(raw.user);
     else if (raw?.profile && Array.isArray(raw.analyses)) {
-      user = newUser('导入的用户'); user.profile = cleanProfile(raw.profile);
+      user = newUser(tr("导入的用户")); user.profile = cleanProfile(raw.profile);
       user.memory = window.GameCoachMemory.withProfile(user.memory, user.profile);
       const rows = raw.analyses.slice(-30).filter(r => r?.input && r?.result);
-      user.sessions = rows.map(row => ({ id: uuid(), title: text(row.input.question, 40) || '导入的分析', created: text(row.created, 80), messages: [
-        { role: 'user', content: text(row.input.question, 4000) || '分析阵容', mode: 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },
+      user.sessions = rows.map(row => ({ id: uuid(), title: text(row.input.question, 40) || tr("导入的分析"), created: text(row.created, 80), messages: [
+        { role: 'user', content: text(row.input.question, 4000) || tr("分析阵容"), mode: 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },
         { role: 'coach', content: text(row.result.summary, 6000), mode: 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },
       ] }));
-    } else throw new Error('请选择 GameCoach 用户备份 JSON。');
+    } else throw new Error(tr("请选择 GameCoach 用户备份 JSON。"));
     // Import as a separate user so an existing user's data is never overwritten.
     if (database.users.some(u => u.id === user.id)) user.id = uuid();
     const base = user.name;
     let suffix = 1;
-    while (database.users.some(u => u.name === user.name)) user.name = base.slice(0, 16) + '（导入 ' + suffix++ + '）';
+    while (database.users.some(u => u.name === user.name)) user.name = base.slice(0, 16) + tr("（导入 ") + suffix++ + '）';
     database.users.push(user); database.activeId = user.id; persist(); return user;
   }
   return {

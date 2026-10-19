@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,9 +10,13 @@
   <script src="../resources/lolm/champions.js" defer></script>
   <script src="../resources/lol/knowledge.js" defer></script>
   <script src="../resources/lolm/knowledge.js" defer></script>
+  <script src="../resources/lol/english.js" defer></script>
+  <script src="./translations.js" defer></script>
+  <script src="./i18n.js" defer></script>
   <script src="./data.js" defer></script>
   <script src="./draft.js" defer></script>
   <script src="../memory/defaults.js" defer></script>
+  <script src="../memory/locales.js" defer></script>
   <script src="../memory/index.js" defer></script>
   <script src="../memory/retrieve.js" defer></script>
   <script src="../memory/commands.js" defer></script>
@@ -51,6 +55,7 @@
       <button id="coach" aria-pressed="false">Coach <span>深入讨论</span></button>
     </nav>
     <div class="header-actions">
+      <label class="language-picker"><span class="sr-only">Language / 语言</span><select id="language" aria-label="Language / 语言"><option value="en">English</option><option value="zh-CN">简体中文</option></select></label>
       <button class="bp-trigger" id="bp-open" aria-haspopup="dialog"><span class="bp-icon" aria-hidden="true">◈</span> BP <span id="bp-count">0/10</span></button>
       <button class="avatar" id="account-open" aria-label="打开用户系统" aria-haspopup="dialog" title="本地用户">我</button>
     </div>

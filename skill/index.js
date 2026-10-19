@@ -1,6 +1,7 @@
 'use strict';
 
 window.GameCoachSkill = (() => {
+  const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   // 入口只串联流程；具体资料整理和输出处理分别位于 input/、output/。
   const prepare = (input, context) => window.GameCoachSkillInput.prepare(input, context);
 

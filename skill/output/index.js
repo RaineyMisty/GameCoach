@@ -1,8 +1,9 @@
 'use strict';
 
 window.GameCoachSkillOutput = (() => {
+  const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   function create(onDelta = () => {}) {
-    if (typeof onDelta !== 'function') throw new TypeError('onDelta 必须是函数。');
+    if (typeof onDelta !== 'function') throw new TypeError(tr("onDelta 必须是函数。"));
     // 每次请求独立创建处理器。当前逐片段透传，不缓冲、不再调用模型。
     function stream(delta) { onDelta(delta); }
     function finish(response) {

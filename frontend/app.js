@@ -1,4 +1,5 @@
 'use strict';
+const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
 const $ = selector => document.querySelector(selector);
 const store = window.GCStore;
 const games = window.GameCoachGames;
@@ -11,6 +12,12 @@ let activeRequest = null;
 const draftUI = window.GameCoachDraftUI.create({ champions: games.get('lolm').champions, getDraft: () => state.draft,
   onChange(draft) { state.draft = draft; updateDraft(); }, onOpen: () => openDialog('bp-dialog') });
 window.addEventListener('gamecoach:ai-changing', () => cancelRequest());
+window.addEventListener('gamecoach:language-changing', () => cancelRequest());
+window.addEventListener('gamecoach:language-changed', () => {
+  draftUI.setChampions(games.get(state.draft.gameId).champions, { preserve: true });
+  renderGameMenu(); setMode(state.mode); renderDraft(); renderConversation(); renderAccount(); renderHistory();
+  for (const id of ['status', 'account-status', 'profile-status']) $('#' + id).textContent = '';
+});
 function element(tag, className, text) {
   const el = document.createElement(tag);
   if (className) el.className = className;
@@ -40,7 +47,7 @@ function setMode(mode) {
   if (activeRequest && state.mode !== mode) cancelRequest();
   state.mode = mode;
   for (const value of ['quick', 'coach']) $('#' + value).setAttribute('aria-pressed', String(value === mode));
-  $('#mode-hint').textContent = mode === 'quick' ? '自然简短，直接回应' : '按问题展开讨论';
+  $('#mode-hint').textContent = mode === 'quick' ? tr("自然简短，直接回应") : tr("按问题展开讨论");
 }
 $('#quick').onclick = () => setMode('quick');
 $('#coach').onclick = () => setMode('coach');
@@ -53,15 +60,17 @@ function renderDraft() {
   $('#game-label').textContent = game.name; $('#game-symbol').textContent = game.icon;
   $('#game-selector').style.setProperty('--game-accent', game.accent);
   $('#bp-game-label').textContent = game.name + ' · LINEUP';
-  $('#game-open').setAttribute('aria-label', '切换游戏，当前：' + game.name);
+  $('#game-open').setAttribute('aria-label', tr("切换游戏，当前：") + game.name);
   for (const option of $('#game-menu').children) option.setAttribute('aria-selected', String(option.dataset.gameId === game.gameId));
   draftUI.render(); resizeInput(); window.dispatchEvent(new CustomEvent('gamecoach:game-changed', { detail: { gameId: game.gameId } }));
 }
 function closeGameMenu() { $('#game-menu').hidden = true; $('#game-open').setAttribute('aria-expanded', 'false'); }
 $('#game-open').onclick = () => { const opening = $('#game-menu').hidden; $('#game-menu').hidden = !opening; $('#game-open').setAttribute('aria-expanded', String(opening)); };
+function renderGameMenu() {
+$('#game-menu').replaceChildren();
 for (const game of [...games.list,
-  { gameId: 'hok', name: '王者荣耀', icon: '王', accent: '#b39761', description: '峡谷对决 · 敬请期待', platform: '即将开放', comingSoon: true },
-  { gameId: 'dota2', name: 'Dota 2', icon: 'D', accent: '#b66c5b', description: '天辉与夜魇 · 敬请期待', platform: '即将开放', comingSoon: true },
+  { gameId: 'hok', name: tr("王者荣耀"), icon: tr("王"), accent: '#b39761', description: tr("峡谷对决 · 敬请期待"), platform: tr("即将开放"), comingSoon: true },
+  { gameId: 'dota2', name: 'Dota 2', icon: 'D', accent: '#b66c5b', description: tr("天辉与夜魇 · 敬请期待"), platform: tr("即将开放"), comingSoon: true },
 ]) {
   const option = button('', 'game-option', () => {
     closeGameMenu(); if (state.draft.gameId === game.gameId) return;
@@ -73,6 +82,8 @@ for (const game of [...games.list,
   const body = element('span', 'game-option-copy'); body.append(element('strong', '', game.name), element('small', '', game.description));
   option.append(icon, body, element('span', 'game-option-platform', game.platform)); $('#game-menu').append(option);
 }
+}
+renderGameMenu();
 document.addEventListener('click', event => { if (!$('#game-selector').contains(event.target)) closeGameMenu(); });
 $('#game-selector').addEventListener('keydown', event => {
   if (event.key === 'Escape') { closeGameMenu(); $('#game-open').focus(); }
@@ -86,8 +97,8 @@ function resizeInput() {
   const question = $('#question'); question.style.height = 'auto'; question.style.height = Math.min(question.scrollHeight, 180) + 'px';
   $('#send').disabled = !activeRequest && !question.value.trim() && !draftOps.count(state.draft);
   $('#send').textContent = activeRequest ? '■' : '↑';
-  $('#send').setAttribute('aria-label', activeRequest ? '停止生成' : '发送问题');
-  $('#send').title = activeRequest ? '停止生成' : '发送（Enter）';
+  $('#send').setAttribute('aria-label', activeRequest ? tr("停止生成") : tr("发送问题"));
+  $('#send').title = activeRequest ? tr("停止生成") : tr("发送（Enter）");
 }
 $('#question').oninput = () => { state.question = $('#question').value; resizeInput(); };
 $('#question').onkeydown = e => {
@@ -100,17 +111,17 @@ for (const prompt of document.querySelectorAll('[data-prompt]')) prompt.onclick 
 const currentSession = () => store.current().sessions.find(s => s.id === state.sessionId);
 function messageDraftElement(draft) {
   const champions = new Map(games.get(draft?.gameId).champions.map(champion => [champion.id, champion]));
-  const names = ids => (ids || []).map(id => champions.get(id)?.name).filter(Boolean).join('、');
+  const names = ids => (ids || []).map(id => champions.get(id)?.name).filter(Boolean).join(window.GameCoachI18n?.locale === 'en' ? ', ' : '、');
   const teams = ['ally', 'enemy'].map(side => ({ side, picks: names(draft?.[side]),
     bans: draft?.bpMode ? names(draft.bans?.[side]?.slice(0, draftOps.banLimit(draft))) : '' }));
   if (!teams.some(team => team.picks || team.bans)) return null;
-  const metadata = element('div', 'message-draft'); metadata.setAttribute('role', 'group'); metadata.setAttribute('aria-label', '本条消息的阵容');
+  const metadata = element('div', 'message-draft'); metadata.setAttribute('role', 'group'); metadata.setAttribute('aria-label', tr("本条消息的阵容"));
   for (const { side, picks, bans } of teams) {
     const row = element('div', 'message-draft-row message-draft-' + side);
-    row.setAttribute('role', 'group'); row.setAttribute('aria-label', side === 'ally' ? '蓝方阵容' : '红方阵容');
-    if (bans) { const banned = element('span', 'message-draft-bans', bans); banned.setAttribute('aria-label', '禁用：' + bans); row.append(banned); }
-    if (picks) { const selected = element('span', 'message-draft-picks', picks); selected.setAttribute('aria-label', '已选：' + picks); row.append(selected); }
-    if (!bans && !picks) { const empty = element('span', 'message-draft-empty', '—'); empty.setAttribute('aria-label', '未选择'); row.append(empty); }
+    row.setAttribute('role', 'group'); row.setAttribute('aria-label', side === 'ally' ? tr("蓝方阵容") : tr("红方阵容"));
+    if (bans) { const banned = element('span', 'message-draft-bans', bans); banned.setAttribute('aria-label', tr("禁用：") + bans); row.append(banned); }
+    if (picks) { const selected = element('span', 'message-draft-picks', picks); selected.setAttribute('aria-label', tr("已选：") + picks); row.append(selected); }
+    if (!bans && !picks) { const empty = element('span', 'message-draft-empty', '—'); empty.setAttribute('aria-label', tr("未选择")); row.append(empty); }
     metadata.append(row);
   }
   return metadata;
@@ -125,21 +136,24 @@ function messageElement(message) {
   wrapper.append(element('span', 'message-logo', '✦'));
   if (message.id) wrapper.id = message.id;
   const body = element('div', 'reply-body');
-  const label = message.localOnly ? '本地记忆' : message.status === 'pending' ? '生成中' : message.status === 'cancelled' ? '已停止' : message.status === 'error' ? '调用失败' : message.isDemo !== false ? '演示回复' : 'AI 回复';
+  const label = message.localOnly ? tr("本地记忆") : message.status === 'pending' ? tr("生成中") : message.status === 'cancelled' ? tr("已停止") : message.status === 'error' ? tr("调用失败") : message.isDemo !== false ? tr("演示回复") : tr("AI 回复");
   const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', label)); body.append(heading);
   const text = element('div', 'reply-text');
-  window.GameCoachMarkdown.renderInto(text, message.content || (message.status === 'pending' ? '正在生成…' : message.status === 'cancelled' ? '已停止生成。' : '没有回复内容。'));
+  window.GameCoachMarkdown.renderInto(text, message.content || (message.status === 'pending' ? tr("正在生成…") : message.status === 'cancelled' ? tr("已停止生成。") : tr("没有回复内容。")));
   body.append(text);
-  if (message.finishReason === 'length') body.append(element('p', 'message-meta', '已达到本次生成上限，可以继续追问。'));
+  if (message.finishReason === 'length') body.append(element('p', 'message-meta', tr("已达到本次生成上限，可以继续追问。")));
   if (message.sources?.length || message.searchSuggestions) body.append(window.GameCoachMessageSources.render(message));
   if (message.usedMemories?.length) {
-    const details = element('details', 'memory-used'), summary = element('summary', '', '本次带入 ' + message.usedMemories.length + ' 条记忆');
+    const details = element('details', 'memory-used'), summary = element('summary', '', tr("本次带入 ") + message.usedMemories.length + tr(" 条记忆"));
     const list = element('ul');
-    for (const item of message.usedMemories) list.append(element('li', '', item.title));
-    details.append(summary, list, button('管理记忆', 'text-button', () => memoryUI.open())); body.append(details);
+    for (const item of message.usedMemories) {
+      const seed = window.GAMECOACH_MEMORY_DEFAULTS.find(value => value.id === item.id && value.title === item.title);
+      list.append(element('li', '', seed ? window.GameCoachMemory.display({ ...seed, source: 'builtin' }).title : item.title));
+    }
+    details.append(summary, list, button(tr("管理记忆"), 'text-button', () => memoryUI.open())); body.append(details);
   }
   if (message.status === 'error') {
-    body.append(button('重新尝试 ↻', 'text-button', () => {
+    body.append(button(tr("重新尝试 ↻"), 'text-button', () => {
       const messages = currentSession()?.messages || []; const at = messages.indexOf(message);
       const question = messages.slice(0, at).reverse().find(item => item.role === 'user');
         if (question) {
@@ -151,10 +165,10 @@ function messageElement(message) {
   }
   if (!message.localOnly && message.mode === 'quick' && (!message.status || message.status === 'complete')) {
     const actions = element('div', 'reply-actions');
-    actions.append(button('深入解释 ↗', '', () => {
+    actions.append(button(tr("深入解释 ↗"), '', () => {
       try {
         const expansion = window.GameCoachConversation.expansion(currentSession()?.messages || [], message.id || message);
-        setMode('coach'); send('展开解释这条回答，继续回答我刚才的问题。', { expansion });
+        setMode('coach'); send(tr("展开解释这条回答，继续回答我刚才的问题。"), { expansion });
       } catch (error) { notice(error.message); }
     }));
     body.append(actions);
@@ -175,17 +189,17 @@ function cancelRequest() {
   cancelAnimationFrame(request.renderFrame);
   request.controller.abort();
   request.reply.status = 'cancelled';
-  if (!request.reply.content) request.reply.content = '已停止生成。';
+  if (!request.reply.content) request.reply.content = tr("已停止生成。");
   store.persist(); resizeInput(); renderConversation();
 }
 async function send(override, options = {}) {
   if (activeRequest) return;
   const content = (override || $('#question').value).trim();
   if (!content && !draftOps.count(state.draft)) { $('#question').focus(); return; }
-  if (content.length > 4000) { notice('问题请控制在 4000 字以内。'); return; }
+  if (content.length > 4000) { notice(tr("问题请控制在 4000 字以内。")); return; }
   let session = currentSession();
   if (!session) {
-    session = { id: store.uuid(), title: (content || '阵容分析').slice(0, 40), created: new Date().toISOString(), messages: [] };
+    session = { id: store.uuid(), title: (content || tr("阵容分析")).slice(0, 40), created: new Date().toISOString(), messages: [] };
     store.current().sessions.push(session); store.current().sessions = store.current().sessions.slice(-30); state.sessionId = session.id;
   }
   const created = new Date().toISOString();
@@ -201,14 +215,14 @@ async function send(override, options = {}) {
         session.messages = session.messages.slice(-100); const saved = store.persist();
         $('#question').value = ''; state.question = ''; resizeInput(); renderConversation(); renderAccount();
         requestAnimationFrame(() => { window.scrollTo({ top: document.body.scrollHeight }); $('#question').focus({ preventScroll: true }); });
-        if (!saved) notice('记忆在当前页面生效；请连接文件夹或导出备份以保存。');
+        if (!saved) notice(tr("记忆在当前页面生效；请连接文件夹或导出备份以保存。"));
         return;
       }
     } catch (error) { notice(error.message); return; }
   }
   // Skill 用各轮快照区分历史与当前阵容；执行模式仍单独交给 ai-core。
   const input = window.GameCoachConversation.buildHistory(session.messages);
-  input.push({ role: 'user', content: content || '请分析这套阵容。' });
+  input.push({ role: 'user', content: content || tr("请分析这套阵容。") });
   const context = { draft: structuredClone(draft), memory: structuredClone(store.current().memory),
     lastCall: window.GameCoachConversation.lastCall(session.messages),
     declarations: window.GameCoachConversation.declarations(session.messages), expansion: options.expansion,
@@ -227,7 +241,7 @@ async function send(override, options = {}) {
       onRetry({ attempt, maxAttempts }) {
         if (isCurrent()) {
           const tag = document.getElementById(reply.id)?.querySelector('.demo-tag');
-          if (tag) tag.textContent = '正在重试 ' + attempt + '/' + maxAttempts;
+          if (tag) tag.textContent = tr("正在重试 ") + attempt + '/' + maxAttempts;
         }
       },
       onDelta(delta) {
@@ -255,8 +269,8 @@ async function send(override, options = {}) {
     if (!isCurrent()) return;
     reply.status = error.name === 'AbortError' ? 'cancelled' : 'error';
     reply.attempts = error.attempts || 1;
-    reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? '已停止生成。'
-      : '生成失败：' + error.message + (error.attempts > 1 ? '（已尝试 ' + error.attempts + ' 次）' : ''));
+    reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? tr("已停止生成。")
+      : tr("生成失败：") + error.message + (error.attempts > 1 ? tr("（已尝试 ") + error.attempts + tr(" 次）") : ''));
   } finally {
     cancelAnimationFrame(request.renderFrame);
     if (isCurrent()) {
@@ -281,9 +295,9 @@ function renderHistory() {
     });
     control.setAttribute('aria-pressed', String(session.id === state.sessionId));
     const date = new Date(session.created);
-    control.append(element('span', '', (Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString()) + ` · ${Math.floor(session.messages.length / 2)} 轮对话`)); list.append(control);
+    control.append(element('span', '', (Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(window.GameCoachI18n?.locale)) + tr(" · {0} 轮对话", Math.floor(session.messages.length / 2)))); list.append(control);
   }
-  if (!list.childElementCount) list.append(element('p', 'empty-history', '还没有对话。聊聊你的第一场对局吧。'));
+  if (!list.childElementCount) list.append(element('p', 'empty-history', tr("还没有对话。聊聊你的第一场对局吧。")));
 }
 function loadCurrentUser() {
   state.draft = structuredClone(store.current().draft);
@@ -294,25 +308,25 @@ function loadCurrentUser() {
 function renderAccount() {
   const user = store.current();
   $('#account-open').textContent = $('#account-avatar').textContent = Array.from(user.name)[0];
-  $('#account-open').title = user.name + ' · 本地用户';
+  $('#account-open').title = user.name + tr(" · 本地用户");
   $('#account-name').textContent = user.name;
   for (const field of ['rank', 'level', 'role', 'preferences']) profileForm.elements[field].value = user.profile[field];
   profileForm.elements.championPool.value = user.profile.championPool.join(', ');
-  $('#memory-summary').textContent = (user.memory.enabled ? '已启用' : '已暂停') + ' · ' + user.memory.entries.length + ' 条本地记忆';
+  $('#memory-summary').textContent = (user.memory.enabled ? tr("已启用") : tr("已暂停")) + ' · ' + user.memory.entries.length + tr(" 条本地记忆");
   const list = $('#user-list'); list.replaceChildren();
   for (const entry of store.users()) {
     const control = button(entry.name, 'user-choice', () => {
       cancelRequest();
-      store.select(entry.id); loadCurrentUser(); $('#profile-status').textContent = ''; $('#account-status').textContent = '已切换到 ' + entry.name;
+      store.select(entry.id); loadCurrentUser(); $('#profile-status').textContent = ''; $('#account-status').textContent = tr("已切换到 ") + entry.name;
     });
     control.setAttribute('aria-pressed', String(entry.id === user.id));
-    control.setAttribute('aria-label', '切换到' + entry.name); list.append(control);
+    control.setAttribute('aria-label', tr("切换到") + entry.name); list.append(control);
   }
 }
 $('#create-user').onsubmit = e => {
   e.preventDefault();
   cancelRequest();
-  try { store.create($('#new-username').value); $('#new-username').value = ''; loadCurrentUser(); $('#account-status').textContent = '新用户已创建，资料和对话独立保存。'; }
+  try { store.create($('#new-username').value); $('#new-username').value = ''; loadCurrentUser(); $('#account-status').textContent = tr("新用户已创建，资料和对话独立保存。"); }
   catch (error) { $('#account-status').textContent = error.message; }
 };
 profileForm.onsubmit = e => {
@@ -324,7 +338,7 @@ profileForm.onsubmit = e => {
   store.current().memory = window.GameCoachMemory.withProfile(store.current().memory, store.current().profile, previousProfile);
   const saved = store.persist();
   renderAccount();
-  $('#profile-status').textContent = saved ? '已保存为个人记忆，按问题相关性参考。' : '当前页面已更新，请连接文件夹或导出以保存。';
+  $('#profile-status').textContent = saved ? tr("已保存为个人记忆，按问题相关性参考。") : tr("当前页面已更新，请连接文件夹或导出以保存。");
 };
 $('#memory-open').onclick = () => memoryUI.open();
 $('#connect-folder').onclick = async () => {
@@ -332,8 +346,8 @@ $('#connect-folder').onclick = async () => {
   $('#connect-folder').disabled = true;
   try {
     const name = await store.connectFolder(); loadCurrentUser();
-    $('#folder-status').textContent = '已连接：' + name + ' · 用户文件自动同步';
-    $('#account-status').textContent = '用户已合并并保存到电脑，本地文件不会上传。';
+    $('#folder-status').textContent = tr("已连接：") + name + tr(" · 用户文件自动同步");
+    $('#account-status').textContent = tr("用户已合并并保存到电脑，本地文件不会上传。");
   } catch (error) { if (error.name !== 'AbortError') $('#account-status').textContent = error.message; }
   finally { $('#connect-folder').disabled = false; }
 };
@@ -346,10 +360,10 @@ $('#export-user').onclick = () => {
 $('#import-user').onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
   try {
-    if (file.size > 10_000_000) throw new Error('备份文件请控制在 10 MB 以内。');
+    if (file.size > 10_000_000) throw new Error(tr("备份文件请控制在 10 MB 以内。"));
     const backup = JSON.parse(await file.text()); cancelRequest();
-    store.importBackup(backup); loadCurrentUser(); $('#account-status').textContent = '已导入为独立用户，原有用户未被覆盖。';
-  } catch (error) { $('#account-status').textContent = error instanceof SyntaxError ? '无法解析 JSON，请选择有效的用户备份。' : error.message; }
+    store.importBackup(backup); loadCurrentUser(); $('#account-status').textContent = tr("已导入为独立用户，原有用户未被覆盖。");
+  } catch (error) { $('#account-status').textContent = error instanceof SyntaxError ? tr("无法解析 JSON，请选择有效的用户备份。") : error.message; }
   e.target.value = '';
 };
 store.setReporter(notice);

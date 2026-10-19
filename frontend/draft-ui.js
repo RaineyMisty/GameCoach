@@ -1,12 +1,15 @@
 'use strict';
 window.GameCoachDraftUI = (() => {
+  const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   function create({ champions, getDraft, onChange }) {
     const $ = selector => document.querySelector(selector);
     const draftOps = window.GameCoachDraft;
     let byId = new Map(champions.map(champion => [champion.id, champion]));
-    function setChampions(next) {
-      champions = next; byId = new Map(next.map(champion => [champion.id, champion])); banTarget = null; filter = 'all'; $('#search').value = '';
-      for (const tab of $('#hero-filters').children) tab.setAttribute('aria-pressed', String(tab.textContent === '全部英雄'));
+    function setChampions(next, { preserve = false } = {}) {
+      champions = next; byId = new Map(next.map(champion => [champion.id, champion]));
+      if (preserve) return;
+      banTarget = null; filter = 'all'; $('#search').value = '';
+      for (const tab of $('#hero-filters').children) tab.setAttribute('aria-pressed', String(tab.dataset.role === 'all'));
     }
     let dragging = null; let filter = 'all'; let banTarget = null;
     function node(tag, className, text) { const value = document.createElement(tag); if (className) value.className = className; if (text !== undefined) value.textContent = text; return value; }
@@ -15,8 +18,8 @@ window.GameCoachDraftUI = (() => {
       const img = node('img'); img.src = champion.portrait; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.draggable = false;
       img.onerror = () => { img.onerror = null; img.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2264%22 height=%2264%22%3E%3C/svg%3E'; }; return img;
     }
-    const slotName = slot => (slot.side === 'ally' ? '蓝方' : '红方') + (slot.kind === 'ban' ? '禁用位 ' + (slot.index + 1)
-      : getDraft().bpMode ? '选人位 ' + (slot.index + 1) : draftOps.roles[slot.index].name);
+    const slotName = slot => (slot.side === 'ally' ? tr("蓝方") : tr("红方")) + (slot.kind === 'ban' ? tr("禁用位 ") + (slot.index + 1)
+      : getDraft().bpMode ? tr("选人位 ") + (slot.index + 1) : draftOps.roles[slot.index].name);
     function commit(next) { onChange(next); }
     const autoTarget = draft => draft.bpMode ? draftOps.nextAction(draft)?.slot || null : draftOps.nextEmpty(draft);
     const currentTarget = draft => banTarget || autoTarget(draft);
@@ -37,10 +40,10 @@ window.GameCoachDraftUI = (() => {
       const draft = getDraft();
       // Always fill the earliest hole; deletion, focus and dragging never set a cursor.
       const target = currentTarget(draft);
-      if (!target) { $('#pick-hint').textContent = '当前流程已填满，可右键取消选择，或拖动英雄替换。'; return; }
+      if (!target) { $('#pick-hint').textContent = tr("当前流程已填满，可右键取消选择，或拖动英雄替换。"); return; }
       if (target.kind !== 'ban' && draftOps.locate(draft, id, draft.bpMode ? undefined : target.side)) {
-        $('#pick-hint').textContent = draft.bpMode ? 'BP 模式双方不能选择重复英雄。'
-          : (target.side === 'ally' ? '蓝方' : '红方') + '已有该英雄，请选其他英雄；双方可以选择同一英雄。'; return;
+        $('#pick-hint').textContent = draft.bpMode ? tr("BP 模式双方不能选择重复英雄。")
+          : (target.side === 'ally' ? tr("蓝方") : tr("红方")) + tr("已有该英雄，请选其他英雄；双方可以选择同一英雄。"); return;
       }
       try {
         const next = target.kind === 'ban' ? draftOps.assignBan(draft, id, target) : draftOps.assign(draft, id, target);
@@ -80,13 +83,13 @@ window.GameCoachDraftUI = (() => {
         const slot = { side, index }; const champion = byId.get(draft[side][index]);
         const wrap = node('div', 'draft-slot' + (draftOps.same(target, slot) ? ' is-next' : ''));
         const pickSlot = control('', 'slot-pick', () => { banTarget = null; render(); }); pickSlot.id = 'draft-' + side + '-' + index;
-        pickSlot.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name + '，可拖动或右键取消选择' : '：空位，可拖入英雄')); pickSlot.setAttribute('aria-pressed', String(draftOps.same(target, slot)));
+        pickSlot.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name + tr("，可拖动或右键取消选择") : tr("：空位，可拖入英雄"))); pickSlot.setAttribute('aria-pressed', String(draftOps.same(target, slot)));
         if (champion) { pickSlot.append(image(champion), node('span', 'slot-name', champion.name)); draggable(pickSlot, champion.id, slot); cancelOnRightClick(pickSlot, champion.id, slot); }
-        else pickSlot.append(node('span', 'slot-empty', '+'), node('span', 'slot-name', '待选'));
+        else pickSlot.append(node('span', 'slot-empty', '+'), node('span', 'slot-name', tr("待选")));
         wrap.append(pickSlot, node('span', 'slot-role', draftOps.roles[index].name)); dropTarget(pickSlot, slot);
         if (champion) {
           const remove = control('×', 'slot-remove', event => { event.stopPropagation(); removePick(champion.id, slot); });
-          remove.setAttribute('aria-label', '移除' + slotName(slot) + '的' + champion.name); wrap.append(remove);
+          remove.setAttribute('aria-label', tr("移除") + slotName(slot) + tr("的") + champion.name); wrap.append(remove);
         }
         slots.append(wrap);
       }
@@ -101,13 +104,13 @@ window.GameCoachDraftUI = (() => {
         const wrap = node('div', 'draft-slot ban-slot' + (draftOps.same(target, slot) ? ' is-next' : ''));
         const button = control('', 'slot-pick ban-pick', () => { banTarget = draftOps.same(banTarget, slot) ? null : slot; render(); });
         button.id = 'ban-' + side + '-' + index; button.setAttribute('aria-pressed', String(draftOps.same(target, slot)));
-        button.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name + '，可拖动或右键取消禁用' : '：空位，点击后选择禁用英雄'));
+        button.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name + tr("，可拖动或右键取消禁用") : tr("：空位，点击后选择禁用英雄")));
         if (champion) { button.append(image(champion), node('span', 'slot-name', champion.name)); draggable(button, champion.id, slot); cancelOnRightClick(button, champion.id, slot); }
         else button.append(node('span', 'slot-empty', '−'));
         wrap.append(button); dropTarget(button, slot);
         if (champion) {
           const remove = control('×', 'slot-remove', event => { event.stopPropagation(); removePick(champion.id, slot); });
-          remove.setAttribute('aria-label', '取消' + slotName(slot) + '的' + champion.name); wrap.append(remove);
+          remove.setAttribute('aria-label', tr("取消") + slotName(slot) + tr("的") + champion.name); wrap.append(remove);
         }
         slots.append(wrap);
       }
@@ -120,7 +123,7 @@ window.GameCoachDraftUI = (() => {
         for (const id of ids) {
           const champion = byId.get(id); if (!champion) continue;
           const item = node('span', 'summary-slot summary-ban'); item.setAttribute('role', 'img');
-          item.setAttribute('aria-label', (side === 'ally' ? '蓝方' : '红方') + '禁用：' + champion.name);
+          item.setAttribute('aria-label', (side === 'ally' ? tr("蓝方") : tr("红方")) + tr("禁用：") + champion.name);
           item.append(image(champion)); bans.append(item);
         }
         bans.hidden = bans.childElementCount === 0; hasBans ||= !bans.hidden;
@@ -128,7 +131,7 @@ window.GameCoachDraftUI = (() => {
         for (let index = 0; index < 5; index++) {
           const slot = { side, index }; const champion = byId.get(draft[side][index]);
           const item = node('span', 'summary-slot');
-          item.setAttribute('role', 'img'); item.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name : '：待选'));
+          item.setAttribute('role', 'img'); item.setAttribute('aria-label', slotName(slot) + (champion ? '：' + champion.name : tr("：待选")));
           if (champion) item.append(image(champion)); else item.append(node('span', 'summary-empty'));
           row.append(item);
         }
@@ -146,53 +149,55 @@ window.GameCoachDraftUI = (() => {
         for (const picked of picks) pickButton.classList.add('picked-' + picked.side);
         if (banned) pickButton.classList.add('is-banned');
         pickButton.id = 'hero-' + champion.id; pickButton.title = champion.name + ' · ' + champion.title;
-        pickButton.setAttribute('aria-label', '选择' + champion.name); pickButton.setAttribute('aria-pressed', String(picks.length > 0 || !!banned));
+        pickButton.setAttribute('aria-label', tr("选择") + champion.name); pickButton.setAttribute('aria-pressed', String(picks.length > 0 || !!banned));
         pickButton.append(image(champion), node('span', 'champion-name', champion.name));
         if (picks.length || banned) {
           const tags = node('span', 'picked-tags');
           for (const picked of [...picks, ...(banned ? [banned] : [])]) {
-            const label = picked.kind === 'ban' ? '禁用' : draft.bpMode ? '已选' : draftOps.roles[picked.index].name;
-            const tag = node('span', 'picked-tag tag-' + picked.side, (picked.side === 'ally' ? '蓝' : '红') + '·' + label);
-            tag.title = '右键取消' + slotName(picked) + '的' + champion.name;
+            const label = picked.kind === 'ban' ? tr("禁用") : draft.bpMode ? tr("已选") : draftOps.roles[picked.index].name;
+            const tag = node('span', 'picked-tag tag-' + picked.side, (picked.side === 'ally' ? tr("蓝") : tr("红")) + '·' + label);
+            tag.title = tr("右键取消") + slotName(picked) + tr("的") + champion.name;
             cancelOnRightClick(tag, champion.id, picked); tags.append(tag);
           }
           pickButton.append(tags);
-          if (picks.length === 2) pickButton.title += ' · 双方已选；右键逐个取消（红方优先），也可右键蓝/红标记取消对应方';
+          if (picks.length === 2) pickButton.title += tr(" · 双方已选；右键逐个取消（红方优先），也可右键蓝/红标记取消对应方");
         }
         draggable(pickButton, champion.id); cancelOnRightClick(pickButton, champion.id); pool.append(pickButton);
       }
-      $('#hero-count').textContent = visible.length + ' / ' + champions.length + ' 位英雄';
-      if (!visible.length) pool.append(node('p', 'empty-champions', '没有找到匹配英雄，试试中文名、称号或英文名。'));
+      $('#hero-count').textContent = visible.length + ' / ' + champions.length + tr(" 位英雄");
+      if (!visible.length) pool.append(node('p', 'empty-champions', tr("没有找到匹配英雄，试试中文名、称号或英文名。")));
     }
     function render() {
       const draft = getDraft();
+      for (const tab of $('#hero-filters').children) tab.textContent = tab.dataset.role === 'all' ? tr('全部英雄') : draftOps.roles.find(role => role.id === tab.dataset.role).name;
+      for (const option of $('#bp-rule').children) option.textContent = draftOps.rules.find(rule => rule.id === option.value).name;
       if (!draft.bpMode) banTarget = null;
       if (banTarget && banTarget.index >= draftOps.banLimit(draft)) banTarget = null;
       $('#bp-mode').checked = draft.bpMode === true;
       $('#bp-rule').hidden = !draft.bpMode; $('#bp-rule').value = draftOps.ruleFor(draft).id;
       $('#bp-rule-info').hidden = !draft.bpMode;
       const rule = draftOps.ruleFor(draft);
-      $('#bp-rule-info').textContent = rule.type === 'split' ? '每方：3 Ban → 3 Pick → 2 Ban → 2 Pick · 选人按 1–2–2–1 / 1–2–1 分组'
-        : '每方：' + rule.bans + ' Ban → 5 Pick · 选人按 1–2–2–2–2–1 分组';
+      $('#bp-rule-info').textContent = rule.type === 'split' ? tr("每方：3 Ban → 3 Pick → 2 Ban → 2 Pick · 选人按 1–2–2–1 / 1–2–1 分组")
+        : tr("每方：") + rule.bans + tr(" Ban → 5 Pick · 选人按 1–2–2–2–2–1 分组");
       $('#bp-dialog').classList.toggle('is-bp', draft.bpMode === true);
       for (const row of document.querySelectorAll('[data-ban-row]')) row.hidden = !draft.bpMode;
       const target = currentTarget(draft); const action = draftOps.nextAction(draft);
       const count = draftOps.count(draft);
       $('#bp-count').textContent = count + '/10';
-      $('#draft-label').textContent = count ? `蓝方 ${draftOps.count(draft, 'ally')} · 红方 ${draftOps.count(draft, 'enemy')}` : '添加阵容';
+      $('#draft-label').textContent = count ? tr("蓝方 {0} · 红方 {1}", draftOps.count(draft, 'ally'), draftOps.count(draft, 'enemy')) : tr("添加阵容");
       $('#composer-bp').classList.toggle('active', count > 0);
       $('#ally-count').textContent = draftOps.count(draft, 'ally') + '/5'; $('#enemy-count').textContent = draftOps.count(draft, 'enemy') + '/5';
-      $('#pick-hint').textContent = banTarget ? '手动禁用：' + slotName(banTarget) + ' · 选一个英雄后回到自动流程；点击选人位返回自动流程。'
-        : draft.bpMode ? action ? '第 ' + action.step + '/' + action.total + ' 步 · ' + action.phase + ' · 下一位：' + slotName(action.slot) + '。'
-          : 'BP 已完成 · 可拖动修正，或右键取消选择。'
-        : target ? '下一位：' + slotName(target) + ' · 从左侧空位依次填充；右键取消，拖动换位。'
-        : '阵容已选满 · 右键取消选择，或拖动英雄换位、替换。';
+      $('#pick-hint').textContent = banTarget ? tr("手动禁用：") + slotName(banTarget) + tr(" · 选一个英雄后回到自动流程；点击选人位返回自动流程。")
+        : draft.bpMode ? action ? tr("第 ") + action.step + '/' + action.total + tr(" 步 · ") + action.phase + tr(" · 下一位：") + slotName(action.slot) + '。'
+          : tr("BP 已完成 · 可拖动修正，或右键取消选择。")
+        : target ? tr("下一位：") + slotName(target) + tr(" · 从左侧空位依次填充；右键取消，拖动换位。")
+        : tr("阵容已选满 · 右键取消选择，或拖动英雄换位、替换。");
       renderSlots('ally'); renderSlots('enemy'); renderBans('ally'); renderBans('enemy'); renderSummary(); renderPool();
     }
     const filters = $('#hero-filters');
-    for (const role of [{ id: 'all', name: '全部英雄' }, ...draftOps.roles]) {
+    for (const role of [{ id: 'all', name: tr("全部英雄") }, ...draftOps.roles]) {
       const tab = control(role.name, 'hero-filter', () => { filter = role.id; for (const item of filters.children) item.setAttribute('aria-pressed', String(item === tab)); renderPool(); });
-      tab.setAttribute('aria-pressed', String(role.id === 'all')); filters.append(tab);
+      tab.dataset.role = role.id; tab.setAttribute('aria-pressed', String(role.id === 'all')); filters.append(tab);
     }
     $('#search').oninput = renderPool;
     for (const rule of draftOps.rules) { const option = node('option', '', rule.name); option.value = rule.id; $('#bp-rule').append(option); }
@@ -201,7 +206,7 @@ window.GameCoachDraftUI = (() => {
     $('#bp-mode').onchange = event => {
       const previous = getDraft(); const next = draftOps.setBPMode(previous, event.target.checked); banTarget = null;
       const removed = draftOps.count(previous) - draftOps.count(next); commit(next);
-      if (removed) $('#pick-hint').textContent = '已开启 BP 模式：保留蓝方英雄，清除了 ' + removed + ' 个红方重复选择。';
+      if (removed) $('#pick-hint').textContent = tr("已开启 BP 模式：保留蓝方英雄，清除了 ") + removed + tr(" 个红方重复选择。");
     };
     return Object.freeze({ render, setChampions });
   }
