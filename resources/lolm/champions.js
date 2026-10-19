@@ -288,7 +288,8 @@ window.GAMECOACH_SOURCES.lolm = {
         "adc"
       ],
       "aliases": [
-        "库奇"
+        "库奇",
+        "飞机"
       ]
     },
     {

@@ -68,7 +68,7 @@ test('prefilled pick slots are skipped at their scheduled steps without reshuffl
 test('rule selection persists through mode toggles, reset, storage export/import and reload', () => {
   const saved = new Map(); const context = { window: {}, crypto: require('node:crypto').webcrypto, structuredClone,
     localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } };
-  vm.createContext(context); const files = ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js'];
+  vm.createContext(context); const files = ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'memory/defaults.js', 'memory/index.js', 'frontend/storage.js'];
   for (const file of files) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   const ops = context.window.GameCoachDraft; const store = context.window.GCStore;
   let draft = ops.setBPMode(ops.setRule(ops.empty(), 'three-enemy'), true);

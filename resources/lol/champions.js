@@ -408,7 +408,8 @@ window.GAMECOACH_SOURCES.lol = {
       ],
       "aliases": [
         "库奇",
-        "Corki"
+        "Corki",
+        "飞机"
       ]
     },
     {

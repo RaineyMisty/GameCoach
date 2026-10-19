@@ -46,6 +46,7 @@ window.GameCoachAI = (() => {
           (value.instructions !== undefined && typeof value.instructions !== 'string') ||
           !['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(value.reasoningEffort) ||
           !Number.isInteger(value.maxOutputTokens) || value.maxOutputTokens < 1 ||
+          (value.retryDelayMs !== undefined && (!Number.isFinite(value.retryDelayMs) || value.retryDelayMs < 0)) ||
           !Number.isFinite(value.timeoutMs) || value.timeoutMs <= 0) throw new TypeError('无效的执行配置。');
       next[mode] = value;
     }
@@ -56,9 +57,10 @@ window.GameCoachAI = (() => {
     if (!Object.hasOwn(profiles, mode)) throw new Error('未知的执行模式。');
     return { ...profiles[mode] };
   }
-  async function call(input, { mode = 'quick', signal, onDelta = () => {} } = {}) {
+  async function call(input, { mode = 'quick', signal, onDelta = () => {}, onRetry = () => {}, webSearch = false } = {}) {
     if (!(typeof input === 'string' && input.trim()) && !(Array.isArray(input) && input.length)) throw new TypeError('请输入文本或消息列表。');
     if (typeof onDelta !== 'function') throw new TypeError('onDelta 必须是函数。');
+    if (typeof onRetry !== 'function' || typeof webSearch !== 'boolean') throw new TypeError('无效的调用选项。');
     if (signal?.aborted) throw abortError();
     // Snapshot settings and input: changing modes must not mutate an in-flight call.
     const settings = getProfile(mode);
@@ -70,6 +72,7 @@ window.GameCoachAI = (() => {
     let firstDeltaMs = null;
     let streamed = '';
     let settled = false;
+    let attempts = 0;
     let rejectStop;
     const stop = new Promise((_, reject) => { rejectStop = reject; });
     const cancel = () => { controller.abort(); rejectStop(abortError()); };
@@ -86,9 +89,35 @@ window.GameCoachAI = (() => {
       streamed += delta;
       onDelta(delta);
     };
+    function wait(delay) {
+      return new Promise((resolve, reject) => {
+        if (controller.signal.aborted) { reject(abortError()); return; }
+        const stopWaiting = () => { clearTimeout(handle); reject(abortError()); };
+        const handle = setTimeout(() => { controller.signal.removeEventListener('abort', stopWaiting); resolve(); }, delay);
+        controller.signal.addEventListener('abort', stopWaiting, { once: true });
+      });
+    }
+    async function generate() {
+      for (attempts = 1; attempts <= 3; attempts++) {
+        try {
+          return await provider.generate({ input: structuredClone(requestInput), ...settings,
+            webSearch, signal: controller.signal, onDelta: emit });
+        } catch (failure) {
+          const error = failure && typeof failure === 'object' ? failure : new Error('AI 调用失败。');
+          error.attempts = attempts;
+          // 已显示的文字不能和另一份重生成答案拼接。取消与总超时也不重试。
+          if (controller.signal.aborted || streamed || !error.retryable || attempts === 3) throw error;
+          const backoff = (settings.retryDelayMs ?? 400) * 2 ** (attempts - 1);
+          const delay = Math.max(error.retryAfterMs || 0, backoff + (settings.retryDelayMs === 0 ? 0 : Math.floor(Math.random() * 100)));
+          if (delay + 300 >= settings.timeoutMs - (now() - started)) throw error;
+          onRetry({ attempt: attempts + 1, maxAttempts: 3, delayMs: delay });
+          await wait(delay);
+        }
+      }
+    }
     try {
       const output = await Promise.race([
-        Promise.resolve().then(() => provider.generate({ input: requestInput, ...settings, signal: controller.signal, onDelta: emit })),
+        Promise.resolve().then(generate),
         stop,
       ]);
       const content = typeof output === 'string' ? output : output?.content;
@@ -98,7 +127,12 @@ window.GameCoachAI = (() => {
       return { content, mode, provider: providerName, model: settings.model,
         isDemo: provider.isDemo === true, reasoningEffort: settings.reasoningEffort,
         finishReason: typeof output?.finishReason === 'string' ? output.finishReason : undefined,
+        attempts, sources: output?.sources || [], searchSuggestions: output?.searchSuggestions || '',
+        searched: output?.searched === true, usage: output?.usage,
         timings: { firstDeltaMs, totalMs: now() - started } };
+    } catch (error) {
+      error.attempts = attempts || 1;
+      throw error;
     } finally {
       settled = true; clearTimeout(timer); signal?.removeEventListener('abort', cancel); controller.abort();
     }

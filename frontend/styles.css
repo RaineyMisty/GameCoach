@@ -208,6 +208,13 @@
 }
 
 /* One catalogue selector controls the page and the active game's draft source. */
+.message-sources { margin-top: 12px; color: #7d887c; font-size: 11px; line-height: 1.6; }
+.message-sources summary { cursor: pointer; }
+.message-sources ul { padding-left: 18px; }
+.message-sources a { color: #557e6c; overflow-wrap: anywhere; }
+.search-suggestions { display: block; border: 0; width: 100%; height: 115px; margin-top: 8px; background: transparent; }
+.search-setting { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 12px 0; font-size: 12px; color: #71816f; }
+.search-setting select { max-width: 190px; padding: 7px 10px; border: 1px solid #e0e6db; border-radius: 9px; background: #fafbf8; color: #52634f; }
 .game-selector { position: relative; --game-accent: #568d7d; }
 .game-trigger { display: flex; align-items: center; gap: 8px; padding: 6px 9px 6px 6px; border: 1px solid #e4e8df; border-radius: 12px; background: #ffffffb8; color: #66746b; font-size: 11px; white-space: nowrap; }
 .game-trigger:hover, .game-trigger[aria-expanded="true"] { background: #fff; border-color: #bdcabc; box-shadow: 0 3px 12px #344a2c08; }
@@ -240,6 +247,10 @@
   .app-layout .workspace { min-height: calc(100dvh - 163px); }
   .app-layout.has-summary-bans .workspace { padding-top: 190px; }
 }
+
+.memory-toolbar,.memory-card-heading,.memory-card-actions,.memory-entry-toggle{display:flex;align-items:center;gap:10px}.memory-toolbar,.memory-card-heading{justify-content:space-between}.memory-entry-toggle{font-size:13px}.memory-entry-toggle input{width:16px;height:16px;margin:0;accent-color:var(--accent)}.memory-add{margin:20px 0}.memory-add summary{cursor:pointer;color:var(--accent);font-size:13px;margin-bottom:14px}.memory-list{display:grid;gap:14px;margin-top:20px}.memory-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}.memory-card-actions{flex-shrink:0;gap:6px}.memory-card-text{font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.memory-card-meta{display:block;color:var(--muted);font-size:10px;overflow-wrap:anywhere}.memory-used{margin-top:12px;color:var(--muted);font-size:11px}.memory-used summary{cursor:pointer}.memory-used ul{padding-left:18px}.memory-drawer{width:min(620px,100vw)}
+
+.memory-add label{display:block;font-size:12px;margin:12px 0;color:var(--muted)}.memory-add input,.memory-add select,.memory-add textarea{margin-top:7px}.memory-add textarea{display:block;width:100%;font:inherit;font-size:13px;line-height:1.7;resize:vertical;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}.memory-card{background:#fff}.memory-card-heading .text-button{padding:5px}.memory-card-heading{align-items:flex-start}.memory-entry-toggle{min-width:0}.memory-entry-toggle strong{overflow-wrap:anywhere}
 
 @media (max-height: 800px) {
   .workspace:not(.has-chat) .welcome { margin-top: 0; padding: 12px 0 20px; }

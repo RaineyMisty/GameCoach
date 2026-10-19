@@ -8,17 +8,31 @@
   <link rel="stylesheet" href="./styles.css">
   <script src="../resources/lol/champions.js" defer></script>
   <script src="../resources/lolm/champions.js" defer></script>
+  <script src="../resources/lol/knowledge.js" defer></script>
+  <script src="../resources/lolm/knowledge.js" defer></script>
   <script src="./data.js" defer></script>
   <script src="./draft.js" defer></script>
+  <script src="../memory/defaults.js" defer></script>
+  <script src="../memory/index.js" defer></script>
+  <script src="../memory/retrieve.js" defer></script>
+  <script src="../memory/commands.js" defer></script>
   <script src="./storage.js" defer></script>
   <script src="../ai-core/index.js" defer></script>
   <script src="../ai-core/gemini.js" defer></script>
+  <script src="../skill/input/game.js" defer></script>
+  <script src="../skill/rules.js" defer></script>
+  <script src="../skill/input/knowledge.js" defer></script>
+  <script src="../skill/input/prepare.js" defer></script>
+  <script src="../skill/output/index.js" defer></script>
   <script src="../skill/index.js" defer></script>
   <script src="./ai-settings.js" defer></script>
   <script src="./vendor/marked.umd.js" defer></script>
   <script src="./vendor/purify.min.js" defer></script>
   <script src="./markdown.js" defer></script>
+  <script src="./conversation.js" defer></script>
+  <script src="./message-sources.js" defer></script>
   <script src="./draft-ui.js" defer></script>
+  <script src="./memory-ui.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -59,7 +73,7 @@
         <textarea id="question" rows="2" maxlength="4000" placeholder="描述你的对局，或先在右上角选择阵容…"></textarea>
         <div class="composer-toolbar">
           <button type="button" id="composer-bp" class="draft-chip"><span aria-hidden="true">◈</span> <span id="draft-label">添加阵容</span></button>
-          <div class="composer-right"><span id="mode-hint">简短建议，先给结论</span><button type="submit" id="send" class="send-button" aria-label="发送问题" title="发送（Enter）">↑</button></div>
+          <div class="composer-right"><span id="mode-hint">自然简短，直接回应</span><button type="submit" id="send" class="send-button" aria-label="发送问题" title="发送（Enter）">↑</button></div>
         </div>
       </form>
       <div class="starter-prompts" id="starter-prompts" aria-label="试试这些问题">
@@ -101,26 +115,46 @@
           <button type="submit" class="primary-button">启用 Gemini</button>
         </form>
         <p class="fine-print" id="ai-key-help">支持新版 AQ.… 和旧版 AIza… 密钥。请在 AI Studio 点击复制按钮，粘贴完整值。</p>
+        <label class="search-setting">资料检索<select id="search-mode"><option value="auto">按需联网</option><option value="on">允许模型联网核实</option><option value="off">仅使用本地资料</option></select></label>
+        <p class="fine-print">按需模式在询问版本、更新或明确要求查资料时允许 Google Search；实际搜索由模型决定。联网可能增加等待时间与账号用量，回答下会显示实际资料来源。</p>
         <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开并清除密钥</button><a class="text-button" href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">在 Google AI Studio 申请 Key ↗</a></div>
-        <p class="fine-print">使用你自己的 Gemini API Key 连接。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题及相关对话会发送给 Google Gemini。Skill 当前仍为占位，BP 和玩家资料尚未自动加入模型输入。</p>
+        <p class="fine-print">使用你自己的 Gemini API Key 连接。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题、相关对话、当前游戏、阵容及按需选取的记忆会发送给 Google Gemini。</p>
         <p id="ai-feedback" class="form-status" role="status"></p>
       </section>
       <section class="settings-section"><h3>切换用户</h3><div id="user-list" class="user-list"></div>
         <form id="create-user" class="inline-form"><label class="sr-only" for="new-username">新用户昵称</label><input id="new-username" maxlength="24" placeholder="新用户昵称" required autocomplete="off"><button type="submit" class="secondary-button">创建</button></form>
         <p class="fine-print">这是本机用户配置，不是在线账号或密码登录。</p>
       </section>
-      <section class="settings-section"><h3>玩家资料</h3><form id="profile">
-        <div class="form-row"><label>段位<input name="rank" maxlength="100" placeholder="例如：Diamond"></label><label>常用位置<select name="role"><option value="support">辅助</option><option value="top">上路</option><option value="jungle">打野</option><option value="mid">中路</option><option value="adc">射手</option><option value="other">其他</option></select></label></div>
+      <section class="settings-section"><h3>记忆</h3><p id="memory-summary" class="subtle"></p><button id="memory-open" class="secondary-button">管理记忆</button><p class="fine-print">保存分析经验与个人偏好，按问题选取相关内容。可以编辑、暂停或删除；在聊天中说“记住：……”也能明确保存。</p></section>
+      <section class="settings-section"><h3>玩家资料 · 个人记忆</h3><p class="fine-print">这些资料只作为记忆按需参考，不固定本局位置，也不限制推荐英雄范围。</p><form id="profile">
+        <div class="form-row"><label>段位<input name="rank" maxlength="100" placeholder="例如：Diamond"></label><label>常用位置<select name="role"><option value="other">不预设位置</option><option value="support">辅助</option><option value="top">上路</option><option value="jungle">打野</option><option value="mid">中路</option><option value="adc">射手</option></select></label></div>
         <label>自评水平<input name="level" maxlength="1000" placeholder="例如：意识较强，操作一般"></label>
         <label>英雄池<input name="championPool" maxlength="1000" placeholder="英雄名称或 ID，用逗号分隔"></label>
         <label>打法与回答偏好<textarea name="preferences" maxlength="1000" rows="3" placeholder="喜欢游走，希望先给结论…"></textarea></label>
-        <button type="submit" class="primary-button">保存资料</button><p id="profile-status" class="form-status" role="status"></p>
+        <button type="submit" class="primary-button">保存为个人记忆</button><p id="profile-status" class="form-status" role="status"></p>
       </form></section>
       <section class="settings-section"><h3>本地数据</h3><p id="folder-status" class="subtle">当前保存在此浏览器。</p><button id="connect-folder" class="secondary-button">连接本地用户文件夹</button>
         <p class="fine-print">选择项目的 users 文件夹后，每个用户会保存为独立 JSON 文件。文件保留在电脑上，不会上传。刷新页面后需重新连接目录。</p>
         <div class="data-actions"><button id="export-user" class="text-button">导出当前用户</button><label class="text-button file-label">导入用户备份<input type="file" id="import-user" accept=".json,application/json" class="sr-only"></label></div>
         <p id="account-status" class="form-status" role="status"></p>
       </section>
+    </div>
+  </dialog>
+
+  <dialog id="memory-dialog" class="drawer memory-drawer" aria-labelledby="memory-title">
+    <div class="drawer-header"><div><p class="eyebrow">MEMORY</p><h2 id="memory-title">记忆</h2></div><button class="icon-button" data-close="memory-dialog" aria-label="关闭记忆">×</button></div>
+    <div class="drawer-content">
+      <div class="memory-toolbar"><label class="memory-entry-toggle"><input type="checkbox" id="memory-enabled">使用长期记忆</label><span id="memory-count" class="subtle"></span></div>
+      <p class="fine-print">这些是可选分析经验。当前问题与本局事实优先；不要求每次逐项回答。记忆保存在当前本地用户中，连接文件夹后随用户 JSON 同步。</p>
+      <details class="memory-add" open><summary>添加或编辑记忆</summary><form id="memory-form">
+        <label>标题<input name="title" maxlength="80" placeholder="例如：辅助选人多探索配合"></label>
+        <label>适用场景<select name="topic"><option value="general">一般分析</option><option value="support">辅助选人</option><option value="jungle">打野决策</option><option value="carries">中下双 C</option><option value="development">阵容发展</option><option value="opponent">对手应对</option><option value="draft">阵容与选人</option><option value="review">战报与复盘</option><option value="player">个人经验</option></select></label>
+        <label>记忆内容<textarea name="text" rows="3" maxlength="1000" required placeholder="记录值得长期参考的方法或偏好……"></textarea></label>
+        <div class="data-actions"><button id="memory-save" type="submit" class="primary-button">添加记忆</button><button id="memory-cancel" type="button" class="text-button" hidden>取消编辑</button></div>
+      </form></details>
+      <p id="memory-status" class="form-status" role="status"></p>
+      <div class="data-actions"><button id="memory-undo" class="text-button" hidden>撤销删除</button><button id="memory-export" class="text-button">导出记忆文档</button></div>
+      <div id="memory-list" class="memory-list"></div>
     </div>
   </dialog>
 

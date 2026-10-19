@@ -9,7 +9,8 @@ HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地�
 ```text
 GameCoach/
 ├── frontend/        # 全部页面、样式与前端脚本
-├── skill/           # 占位 Skill：请求和流式回复原样转交
+├── skill/           # 游戏资料、阵容去重、记忆接入、输出处理入口
+├── memory/          # 独立长期记忆、相关性筛选与本地管理
 ├── ai-core/         # 通用模型调用、执行模式、取消和超时
 ├── back-end/        # 仅目录说明，本阶段不实现后端
 ├── tests/           # 模块边界、流式回复和存储兼容性测试
@@ -49,7 +50,7 @@ GitHub Pages 保持 **Deploy from a branch → main → /(root)**。根目录的
 6. 在同一个聊天中切换 Quick / Coach，历史继续保留；切换会停止正在生成的请求，下一条使用新配置。也可点击发送按钮变成的停止按钮。
 7. Key 只保存在当前页面内存，刷新 / 关闭网页后需重新填写；“断开并清除密钥”立即恢复本地演示。Key 不写进代码、浏览器应用存储、用户 JSON 或导出文件。不要把 Key 发到聊天里或提交 GitHub。浏览器自己的密码管理行为不由应用控制。
 
-Skill 仍是占位：BP 和玩家资料尚未自动发送给模型。需要询问阵容时，先把阵容写进问题。每次请求发送最近 20 条有效历史消息及当前问题；本地保存不代表模型在本地运行，发问时这些内容会发送到 Google Gemini。免费档的数据处理方式见 Google 的服务条款，避免发送敏感个人信息。
+Skill 会补充当前游戏、蓝红选人、有效 Ban、BP 规则及按需选取的长期记忆。玩家资料不再单独直接注入请求，改为个人记忆；普通“选什么”不会自动按常用位置分配本局角色，也不把英雄池当作候选白名单。同一阵容在一次请求中只展开一次，历史快照通过短标签引用。每次请求仍发送最近 20 条有效历史消息及当前问题；没有精确 Token 截断或自动语义历史压缩。本地保存不代表模型在本地运行，发问时相关内容仍会发送到 Google Gemini。免费档的数据处理方式见 Google 的服务条款，避免发送敏感个人信息。
 
 常见问题：
 
@@ -58,11 +59,19 @@ Skill 仍是占位：BP 和玩家资料尚未自动发送给模型。需要询�
 - 400 / API Key 无效：重新从 AI Studio 复制 Gemini Key，不要使用旧的其他平台 Key；检查项目是否满足免费档或计费要求。
 - 403：检查地区、项目权限及 Key 的 API / 网站来源限制。如果设置网站限制，请允许自己的 GitHub Pages 域名；file:// 没有普通网站来源，可能需要从 HTTPS 页面测试。
 - 404：检查 ai-core/gemini.js 中的 models 和当前项目开放的型号。
-- 429：免费额度耗尽、项目没有可用额度或调用频率过高，去 AI Studio 查看配额；应用不会自动重试、切换平台或替你开通付费。
+- 429：免费额度耗尽、项目没有可用额度或调用频率过高，去 AI Studio 查看配额。临时网络/限流/服务器错误最多尝试 3 次，共用该档总超时，并尊重 Retry-After；等待超过剩余时间就直接提示。密钥、权限和参数错误不重试，已输出部分文字时保留内容并提供手动重试。
 - 无法连接：检查网络；浏览器限制本地文件请求时，使用编辑器本地预览或 GitHub Pages 的 HTTPS 地址。
 - 达到生成上限：页面标注截断，可继续追问；若思考消耗完额度而没有答案，缩短问题或改用 Quick。
 
 当前只使用无服务端会话的 generateContent 流式接口，不创建 Google 服务端聊天会话、数据库或 Backend。模型和思考档位集中在 ai-core/gemini.js 中。依据：[API Key](https://ai.google.dev/gemini-api/docs/api-key)、[思考配置](https://ai.google.dev/gemini-api/docs/thinking)、[REST 接口](https://ai.google.dev/api/generate-content)、[免费档与价格](https://ai.google.dev/gemini-api/docs/pricing)。
+
+### 游戏资料与联网
+
+Skill 现在按问题附上相关英雄的官方技能快照：端游 Data Dragon 16.20.1，手游腾讯目录 7.3，均采集于 2026-10-18；并非实时比赛版本。回答下的“资料来源”区分本地快照与实际联网结果。资料范围与维护方法见 [resources/README.md](./resources/README.md)。
+
+“AI 连接”里的“资料检索”有三档：默认“按需联网”，遇到版本、更新或明确查资料的请求时允许 Google Search；“允许模型联网核实”每次允许；“仅使用本地资料”关闭搜索工具。允许不代表每次一定搜索，实际检索由 Gemini 决定。搜索可能增加延迟、用量或费用，取决于账号计划；只有接口实际返回的检索来源才标为联网。Google 返回的搜索建议也会显示。依据：[Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search)。
+
+Quick 采用自然简短的回答；Coach 默认按当前问题展开，只有明确要求全面分析才写完整报告。“深入解释”引用被点击的回答和原问题，保留其阵容快照，不更改当前编辑器。非常规选人按用户指定的英雄、位置和经济条件分析可行性与代价，不能预设辅助只能保人。闲聊和失败后的连接询问无需重新分析阵容。
 
 ## 本地用户文件夹
 
@@ -80,7 +89,15 @@ users 目录已在 .gitignore 中整体排除。本地目录是空目录时 Git 
 
 未启用 Gemini 时，ai-core 默认使用本地 demo provider，不联网、不调用真实模型；启用后会调用 Gemini，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。手游英雄名单来自手游官网 2026-10-18 快照，共 142 位；端游英雄名单、中文名称与共用头像来自 Riot Data Dragon 16.20.1，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
 
-调用链为 Front-End → Skill → ai-core → Skill → Front-End。Skill 暂时原样透传，预留补充资料和整理回复的位置；阵容和用户资料只传给 Skill 的 context，占位版暂不使用。ai-core 接受通用文本或消息列表，不要求游戏专用字段。
+调用链为 Front-End → Skill → ai-core → Skill → Front-End，独立 memory 模块向 Skill 提供按需选择的可选经验。Skill 的 input/ 整理游戏、记忆与消息，output/ 当前原样转交流式回复和最终结果，预留评分、文字整理和资料关联位置。Quick / Coach 仍通过 ai-core 执行配置切换。代码阅读入口及消息示例见 [skill/README.md](./skill/README.md)。ai-core 接受通用文本或消息列表，不要求游戏专用字段。
+
+## 长期记忆
+
+点击头像 →“管理记忆”，可以新增、编辑、暂停、删除，或关闭整个记忆模块。初始七条包括辅助选人、打野决策、中下双 C、阵容发展、对手应对，以及本局分工与摇摆、经验与判断。它们是可选经验，不是每轮必须执行的模板。记忆保存在每个本地用户中，连接 users 文件夹后随 JSON 同步，支持完整用户备份以及单独导出 Markdown 文档。
+
+聊天中输入“记住：讨论辅助时，希望多探索大胆配合”可以明确保存；“忘记：记忆编号”可以删除。显示“本地记忆”的回执不会调用 API。普通战报不会静默转换成永久偏好，当前未实现 AI 自动提炼隐式记忆。
+
+每次最多带入六条相关记忆，回答下可查看本次带入的标题；数据已提供不代表模型一定采用。当前使用字符预算控制记忆长度，仍消耗输入 Token，并非 Codex 的自动上下文压缩。详见 [memory/readme.md](./memory/readme.md)；初始经验见 [analysis-preferences.md](./memory/analysis-preferences.md)。
 
 Quick / Coach 硬切换 ai-core 的调用配置：demo-instant / none / 128 输出额度，以及 demo-reasoning / medium / 1024 输出额度。并非仅在提示词中要求简短或详细。演示 provider 不模拟真实推理或 token 计费，也不能用它衡量真实模型延迟。接真实 provider 时需根据模型实际支持的参数映射执行配置。
 
@@ -93,6 +110,8 @@ Markdown 使用 frontend/vendor 内固定版本的 Marked / DOMPurify，离线�
 浏览器验证：打开 tests/markdown.html 可运行 Markdown 格式、流式片段与 HTML 安全过滤检查，无需 API Key。
 
 开发验证（仅测试需要 Node.js，打开网页不需要）：`node --test tests/*.test.cjs`。
+
+真实模型语义验收案例见 [tests/skill-quality-cases.json](./tests/skill-quality-cases.json)。自动测试验证消息、检索、重试和历史行为；无法替代真实模型回答质量验收。
 
 许可证见 LICENSE。
 

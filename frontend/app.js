@@ -5,6 +5,7 @@ const games = window.GameCoachGames;
 const draftOps = window.GameCoachDraft;
 const state = { mode: 'quick', sessionId: null, draft: draftOps.empty(), question: '' };
 const profileForm = $('#profile');
+const memoryUI = window.GameCoachMemoryUI.create({ store, onChange: () => renderAccount() });
 let renderedGameId = null;
 let activeRequest = null;
 const draftUI = window.GameCoachDraftUI.create({ champions: games.get('lolm').champions, getDraft: () => state.draft,
@@ -39,7 +40,7 @@ function setMode(mode) {
   if (activeRequest && state.mode !== mode) cancelRequest();
   state.mode = mode;
   for (const value of ['quick', 'coach']) $('#' + value).setAttribute('aria-pressed', String(value === mode));
-  $('#mode-hint').textContent = mode === 'quick' ? '简短建议，先给结论' : '展开思路，一起复盘';
+  $('#mode-hint').textContent = mode === 'quick' ? '自然简短，直接回应' : '按问题展开讨论';
 }
 $('#quick').onclick = () => setMode('quick');
 $('#coach').onclick = () => setMode('coach');
@@ -124,15 +125,38 @@ function messageElement(message) {
   wrapper.append(element('span', 'message-logo', '✦'));
   if (message.id) wrapper.id = message.id;
   const body = element('div', 'reply-body');
-  const label = message.status === 'pending' ? '生成中' : message.status === 'cancelled' ? '已停止' : message.status === 'error' ? '调用失败' : message.isDemo !== false ? '演示回复' : 'AI 回复';
+  const label = message.localOnly ? '本地记忆' : message.status === 'pending' ? '生成中' : message.status === 'cancelled' ? '已停止' : message.status === 'error' ? '调用失败' : message.isDemo !== false ? '演示回复' : 'AI 回复';
   const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', label)); body.append(heading);
   const text = element('div', 'reply-text');
   window.GameCoachMarkdown.renderInto(text, message.content || (message.status === 'pending' ? '正在生成…' : message.status === 'cancelled' ? '已停止生成。' : '没有回复内容。'));
   body.append(text);
   if (message.finishReason === 'length') body.append(element('p', 'message-meta', '已达到本次生成上限，可以继续追问。'));
-  if (message.mode === 'quick' && (!message.status || message.status === 'complete')) {
+  if (message.sources?.length || message.searchSuggestions) body.append(window.GameCoachMessageSources.render(message));
+  if (message.usedMemories?.length) {
+    const details = element('details', 'memory-used'), summary = element('summary', '', '本次带入 ' + message.usedMemories.length + ' 条记忆');
+    const list = element('ul');
+    for (const item of message.usedMemories) list.append(element('li', '', item.title));
+    details.append(summary, list, button('管理记忆', 'text-button', () => memoryUI.open())); body.append(details);
+  }
+  if (message.status === 'error') {
+    body.append(button('重新尝试 ↻', 'text-button', () => {
+      const messages = currentSession()?.messages || []; const at = messages.indexOf(message);
+      const question = messages.slice(0, at).reverse().find(item => item.role === 'user');
+        if (question) {
+          const target = question.inReplyTo && messages.find(item => item.id === question.inReplyTo);
+          send(question.content, { draft: question.draft,
+            ...(target ? { expansion: window.GameCoachConversation.expansion(messages, target) } : {}) });
+        }
+    }));
+  }
+  if (!message.localOnly && message.mode === 'quick' && (!message.status || message.status === 'complete')) {
     const actions = element('div', 'reply-actions');
-    actions.append(button('深入解释 ↗', '', () => { state.draft = structuredClone(message.draft); updateDraft(); setMode('coach'); send('请进一步解释这套阵容的配合与复盘思路。'); }));
+    actions.append(button('深入解释 ↗', '', () => {
+      try {
+        const expansion = window.GameCoachConversation.expansion(currentSession()?.messages || [], message.id || message);
+        setMode('coach'); send('展开解释这条回答，继续回答我刚才的问题。', { expansion });
+      } catch (error) { notice(error.message); }
+    }));
     body.append(actions);
   }
   wrapper.append(body); return wrapper;
@@ -154,7 +178,7 @@ function cancelRequest() {
   if (!request.reply.content) request.reply.content = '已停止生成。';
   store.persist(); resizeInput(); renderConversation();
 }
-async function send(override) {
+async function send(override, options = {}) {
   if (activeRequest) return;
   const content = (override || $('#question').value).trim();
   if (!content && !draftOps.count(state.draft)) { $('#question').focus(); return; }
@@ -165,15 +189,31 @@ async function send(override) {
     store.current().sessions.push(session); store.current().sessions = store.current().sessions.slice(-30); state.sessionId = session.id;
   }
   const created = new Date().toISOString();
-  const draft = structuredClone(state.draft);
+  const draft = structuredClone(options.expansion?.draft || options.draft || state.draft);
   const mode = state.mode;
-  // Content and execution options travel separately. The placeholder Skill does
-  // not enrich the messages with game context yet.
-  const input = session.messages.filter(m => m.role === 'user' || !m.status || m.status === 'complete').slice(-20)
-    .map(m => ({ role: m.role === 'coach' ? 'assistant' : 'user', content: m.content }));
+  if (!options.expansion && !options.draft) {
+    try {
+      const command = window.GameCoachMemoryCommands.apply(store.current().memory, content);
+      if (command.handled) {
+        store.current().memory = command.memory;
+        session.messages.push({ role: 'user', content, mode, draft, created, localOnly: true },
+          { id: 'reply-' + store.uuid(), role: 'coach', content: command.notice, mode, draft, created, localOnly: true, isDemo: false, status: 'complete' });
+        session.messages = session.messages.slice(-100); const saved = store.persist();
+        $('#question').value = ''; state.question = ''; resizeInput(); renderConversation(); renderAccount();
+        requestAnimationFrame(() => { window.scrollTo({ top: document.body.scrollHeight }); $('#question').focus({ preventScroll: true }); });
+        if (!saved) notice('记忆在当前页面生效；请连接文件夹或导出备份以保存。');
+        return;
+      }
+    } catch (error) { notice(error.message); return; }
+  }
+  // Skill 用各轮快照区分历史与当前阵容；执行模式仍单独交给 ai-core。
+  const input = window.GameCoachConversation.buildHistory(session.messages);
   input.push({ role: 'user', content: content || '请分析这套阵容。' });
-  const context = { draft: structuredClone(draft), profile: structuredClone(store.current().profile) };
-  session.messages.push({ role: 'user', content: input.at(-1).content, mode, draft, created });
+  const context = { draft: structuredClone(draft), memory: structuredClone(store.current().memory),
+    lastCall: window.GameCoachConversation.lastCall(session.messages),
+    declarations: window.GameCoachConversation.declarations(session.messages), expansion: options.expansion,
+    searchMode: $('#search-mode').value };
+  session.messages.push({ role: 'user', content: input.at(-1).content, mode, draft, created, inReplyTo: options.expansion?.replyId });
   const reply = { id: 'reply-' + store.uuid(), role: 'coach', content: '', mode, draft: structuredClone(draft), created, status: 'pending' };
   session.messages.push(reply);
   const request = { controller: new AbortController(), renderFrame: 0, reply, userId: store.current().id, sessionId: session.id };
@@ -184,6 +224,12 @@ async function send(override) {
   try {
     const response = await window.GameCoachSkill.run(input, {
       context, mode, signal: request.controller.signal,
+      onRetry({ attempt, maxAttempts }) {
+        if (isCurrent()) {
+          const tag = document.getElementById(reply.id)?.querySelector('.demo-tag');
+          if (tag) tag.textContent = '正在重试 ' + attempt + '/' + maxAttempts;
+        }
+      },
       onDelta(delta) {
         if (!isCurrent()) return;
         reply.content += delta;
@@ -202,10 +248,15 @@ async function send(override) {
     reply.content = response.content;
     reply.provider = response.provider; reply.model = response.model; reply.isDemo = response.isDemo;
     reply.reasoningEffort = response.reasoningEffort; reply.status = 'complete'; reply.timings = response.timings; reply.finishReason = response.finishReason;
+    reply.sources = response.sources; reply.searchSuggestions = response.searchSuggestions; reply.searched = response.searched;
+    reply.attempts = response.attempts; reply.usage = response.usage;
+    reply.usedMemories = response.usedMemories;
   } catch (error) {
     if (!isCurrent()) return;
     reply.status = error.name === 'AbortError' ? 'cancelled' : 'error';
-    reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? '已停止生成。' : '生成失败：' + error.message);
+    reply.attempts = error.attempts || 1;
+    reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? '已停止生成。'
+      : '生成失败：' + error.message + (error.attempts > 1 ? '（已尝试 ' + error.attempts + ' 次）' : ''));
   } finally {
     cancelAnimationFrame(request.renderFrame);
     if (isCurrent()) {
@@ -247,6 +298,7 @@ function renderAccount() {
   $('#account-name').textContent = user.name;
   for (const field of ['rank', 'level', 'role', 'preferences']) profileForm.elements[field].value = user.profile[field];
   profileForm.elements.championPool.value = user.profile.championPool.join(', ');
+  $('#memory-summary').textContent = (user.memory.enabled ? '已启用' : '已暂停') + ' · ' + user.memory.entries.length + ' 条本地记忆';
   const list = $('#user-list'); list.replaceChildren();
   for (const entry of store.users()) {
     const control = button(entry.name, 'user-choice', () => {
@@ -267,10 +319,14 @@ profileForm.onsubmit = e => {
   e.preventDefault();
   const profile = Object.fromEntries(new FormData(profileForm));
   profile.championPool = profile.championPool.split(/[,，]/).map(x => x.trim()).filter(Boolean);
+  const previousProfile = store.current().profile;
   store.current().profile = store.cleanProfile(profile);
+  store.current().memory = window.GameCoachMemory.withProfile(store.current().memory, store.current().profile, previousProfile);
   const saved = store.persist();
-  $('#profile-status').textContent = saved ? '已保存当前用户资料。' : '当前页面已更新，请连接文件夹或导出以保存。';
+  renderAccount();
+  $('#profile-status').textContent = saved ? '已保存为个人记忆，按问题相关性参考。' : '当前页面已更新，请连接文件夹或导出以保存。';
 };
+$('#memory-open').onclick = () => memoryUI.open();
 $('#connect-folder').onclick = async () => {
   cancelRequest();
   $('#connect-folder').disabled = true;

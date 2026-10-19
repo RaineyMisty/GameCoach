@@ -4,7 +4,7 @@ window.GCStore = (() => {
   const key = 'gamecoach-users-v2';
   const legacyKey = 'gamecoach-static-v1';
   const uuid = () => globalThis.crypto?.randomUUID?.() || 'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
-  const defaults = () => ({ rank: '', level: '', role: 'support', championPool: [], preferences: '' });
+  const defaults = () => ({ rank: '', level: '', role: 'other', championPool: [], preferences: '' });
   const safeId = value => typeof value === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(value);
   const text = (value, max = 1000) => typeof value === 'string' ? value.slice(0, max) : '';
   function cleanDraft(draft) {
@@ -29,6 +29,24 @@ window.GCStore = (() => {
       provider: text(message.provider, 80), model: text(message.model, 120),
       isDemo: message.isDemo !== false, reasoningEffort: text(message.reasoningEffort, 20),
       finishReason: text(message.finishReason, 40),
+      inReplyTo: safeId(message.inReplyTo) ? message.inReplyTo : undefined,
+      localOnly: message.localOnly === true,
+      usedMemories: (Array.isArray(message.usedMemories) ? message.usedMemories : []).slice(0, 6)
+        .filter(item => item && safeId(item.id)).map(item => ({ id: item.id, title: text(item.title, 80) })),
+      attempts: Number.isInteger(message.attempts) && message.attempts >= 1 && message.attempts <= 3 ? message.attempts : undefined,
+      sources: (Array.isArray(message.sources) ? message.sources : []).slice(0, 24).flatMap(source => {
+        try {
+          const url = new URL(source.url); if (!['https:', 'http:'].includes(url.protocol)) return [];
+          return [{ url: url.href, title: text(source.title, 160) || url.hostname, kind: source.kind === 'local' ? 'local' : 'web',
+            gameId: text(source.gameId, 20), version: text(source.version, 80), fetchedOn: text(source.fetchedOn, 40) }];
+        } catch { return []; }
+      }),
+      searched: message.searched === true, searchSuggestions: text(message.searchSuggestions, 30000),
+      usage: message.usage && Number.isFinite(message.usage.totalTokens) ? {
+        inputTokens: Number.isFinite(message.usage.inputTokens) ? Math.max(0, message.usage.inputTokens) : undefined,
+        outputTokens: Number.isFinite(message.usage.outputTokens) ? Math.max(0, message.usage.outputTokens) : undefined,
+        totalTokens: Math.max(0, message.usage.totalTokens),
+      } : undefined,
       timings: message.timings && Number.isFinite(message.timings.totalMs) && Number.isFinite(message.timings.firstDeltaMs)
         ? { totalMs: Math.max(0, message.timings.totalMs), firstDeltaMs: Math.max(0, message.timings.firstDeltaMs) } : undefined };
   }
@@ -44,9 +62,10 @@ window.GCStore = (() => {
     }
     drafts[draft.gameId] = draft;
     return { id: raw.id, name: raw.name.trim().slice(0, 24), profile: cleanProfile(raw.profile),
+      memory: window.GameCoachMemory.normalize(raw.memory, cleanProfile(raw.profile)),
       draft, drafts, sessions, updatedAt: text(raw.updatedAt, 80) || new Date().toISOString() };
   }
-  const newUser = name => ({ id: uuid(), name: name.trim(), profile: defaults(), draft: window.GameCoachDraft.empty(), sessions: [], updatedAt: new Date().toISOString() });
+  const newUser = name => ({ id: uuid(), name: name.trim(), profile: defaults(), memory: window.GameCoachMemory.seed(), draft: window.GameCoachDraft.empty(), sessions: [], updatedAt: new Date().toISOString() });
   let database;
   let browserAvailable = true;
   let directory = null;
@@ -70,6 +89,7 @@ window.GCStore = (() => {
       const old = JSON.parse(localStorage.getItem(legacyKey) || 'null');
       if (old) {
         user.profile = cleanProfile(old.profile);
+        user.memory = window.GameCoachMemory.withProfile(user.memory, user.profile);
         const rows = Array.isArray(old.analyses) ? old.analyses.slice(-30) : [];
         user.sessions = rows.filter(r => r && r.input && r.result).map(row => ({
           id: uuid(), title: text(row.input.question, 40) || '历史阵容分析', created: text(row.created, 80),
@@ -170,6 +190,7 @@ window.GCStore = (() => {
     if (raw?.format === 'gamecoach-user' && raw.version === 2) user = cleanUser(raw.user);
     else if (raw?.profile && Array.isArray(raw.analyses)) {
       user = newUser('导入的用户'); user.profile = cleanProfile(raw.profile);
+      user.memory = window.GameCoachMemory.withProfile(user.memory, user.profile);
       const rows = raw.analyses.slice(-30).filter(r => r?.input && r?.result);
       user.sessions = rows.map(row => ({ id: uuid(), title: text(row.input.question, 40) || '导入的分析', created: text(row.created, 80), messages: [
         { role: 'user', content: text(row.input.question, 4000) || '分析阵容', mode: 'quick', draft: cleanDraft(row.input), created: text(row.created, 80) },

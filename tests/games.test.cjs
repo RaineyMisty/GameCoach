@@ -9,7 +9,7 @@ function setup(saved = new Map()) {
   const context = { window: {}, crypto: require('node:crypto').webcrypto, structuredClone,
     localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } };
   vm.createContext(context);
-  for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
+  for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'memory/defaults.js', 'memory/index.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   return { context, saved, games: context.window.GameCoachGames, ops: context.window.GameCoachDraft, store: context.window.GCStore };
 }
 test('game catalogues share common portraits and keep mobile-only portraits in the mobile directory', () => {

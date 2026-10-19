@@ -6,7 +6,7 @@ const path = require('node:path');
 const root = path.join(__dirname, '..');
 const TEST_KEY = 'test-credential-not-a-real-api-key';
 function setup(fetch) {
-  const context = { window: {}, fetch, setTimeout, clearTimeout, AbortController, DOMException, structuredClone, TextDecoder, performance };
+  const context = { window: {}, fetch, setTimeout, clearTimeout, AbortController, DOMException, structuredClone, TextDecoder, performance, URL };
   vm.createContext(context);
   for (const file of ['ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   return { ai: context.window.GameCoachAI, gemini: context.window.GameCoachGemini };
@@ -198,4 +198,31 @@ test('unsafe pasted credentials are rejected locally without losing an existing 
     assert.throws(() => gemini.activate(key), /格式检查未通过/); assert.equal(gemini.isConfigured(), true); assert.equal(ai.getProviderName(), 'gemini');
   }
   assert.equal(calls, 0);
+});
+
+test('Google Search is optional and actual grounding metadata carries safe sources, suggestions and token usage', async () => {
+  const payloads = []; const answer = event('参考官方资料', 'STOP');
+  answer.candidates[0].groundingMetadata = {
+    webSearchQueries: ['Corki patch'], searchEntryPoint: { renderedContent: '<div>Search suggestions</div>' },
+    groundingChunks: [{ web: { uri: 'https://wildrift.leagueoflegends.com/', title: 'Wild Rift' } },
+      { web: { uri: 'javascript:alert(1)', title: 'unsafe' } }, { web: { uri: 'https://wildrift.leagueoflegends.com/', title: 'duplicate' } }],
+  };
+  answer.usageMetadata = { promptTokenCount: 100, candidatesTokenCount: 40, totalTokenCount: 150 };
+  const { ai, gemini } = setup(async (url, options) => { payloads.push(JSON.parse(options.body)); return sse([answer]); });
+  gemini.activate(TEST_KEY); const result = await ai.call('核实技能', { webSearch: true }); await ai.call('你好');
+  assert.deepEqual(payloads[0].tools, [{ googleSearch: {} }]); assert.equal(payloads[1].tools, undefined);
+  assert.equal(result.sources.length, 1); assert.equal(result.sources[0].kind, 'web');
+  assert.match(result.searchSuggestions, /Search suggestions/); assert.equal(result.searched, true);
+  assert.equal(result.usage.totalTokens, 150); assert.equal(result.usage.inputTokens, 100);
+});
+
+test('HTTP 503 retries before text and succeeds while 401 does not retry', async () => {
+  for (const status of [503, 401]) {
+    let calls = 0; const { ai, gemini } = setup(async () => {
+      calls++; return calls === 1 ? new Response('{}', { status }) : sse([event('恢复了', 'STOP')]);
+    }); gemini.activate(TEST_KEY); ai.configure({ modes: { quick: { retryDelayMs: 0 } } });
+    if (status === 503) { const result = await ai.call('hi'); assert.equal(result.content, '恢复了'); assert.equal(result.attempts, 2); }
+    else await assert.rejects(ai.call('hi'), error => error.attempts === 1);
+    assert.equal(calls, status === 503 ? 2 : 1);
+  }
 });

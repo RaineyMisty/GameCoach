@@ -21,6 +21,7 @@ window.GameCoachGemini = (() => {
       : messages[status] || `Gemini 服务暂时不可用（HTTP ${status}），请稍后再试。`);
     // Never display raw upstream messages: they can echo credentials or input.
     error.name = 'GeminiError'; error.status = status;
+    error.retryable = [408, 429, 500, 502, 503, 504].includes(status) && !['API_KEY_INVALID', 'API_KEY_EXPIRED'].includes(code);
     return error;
   }
   async function request(path, options, secret) {
@@ -35,6 +36,10 @@ window.GameCoachGemini = (() => {
         const code = data?.error?.details?.find(item => typeof item.reason === 'string')?.reason;
         const error = apiError(response.status, code);
         const retry = response.headers.get('retry-after');
+        if (retry) {
+          const delay = /^\d{1,6}$/.test(retry) ? Number(retry) * 1000 : Date.parse(retry) - Date.now();
+          if (Number.isFinite(delay) && delay > 0) error.retryAfterMs = delay;
+        }
         if (response.status === 429 && retry && /^\d{1,6}$/.test(retry)) error.message += ` 建议至少等待 ${retry} 秒。`;
         throw error;
       }
@@ -42,7 +47,8 @@ window.GameCoachGemini = (() => {
     } catch (error) {
       if (options.signal?.aborted) throw aborted();
       if (error.name === 'GeminiError') throw error;
-      throw new Error('无法连接 Gemini。请检查网络连接；如果浏览器阻止本地文件请求，请改用本地网页服务或 GitHub Pages 的 HTTPS 页面。');
+      const failure = new Error('无法连接 Gemini。请检查网络连接；如果浏览器阻止本地文件请求，请改用本地网页服务或 GitHub Pages 的 HTTPS 页面。');
+      failure.retryable = true; throw failure;
     }
   }
   function parts(content) {
@@ -78,7 +84,7 @@ window.GameCoachGemini = (() => {
     if (!contents.length || contents.at(-1).role !== 'user') throw new Error('请在消息列表末尾添加用户问题。');
     return { contents, ...(system.length ? { systemInstruction: { parts: system } } : {}) };
   }
-  async function generate({ input, model, reasoningEffort, maxOutputTokens, instructions, signal, onDelta }) {
+  async function generate({ input, model, reasoningEffort, maxOutputTokens, instructions, signal, onDelta, webSearch }) {
     const secret = apiKey;
     if (!secret) throw new Error('请先打开“AI 连接”，填写 Gemini API Key 并启用。');
     const supported = model === models.quick ? ['minimal', 'low', 'medium', 'high'] : model === models.coach ? ['low', 'medium', 'high'] : [];
@@ -88,14 +94,33 @@ window.GameCoachGemini = (() => {
       method: 'POST', signal,
       body: JSON.stringify({ ...normalize(input, instructions), generationConfig: {
         maxOutputTokens, thinkingConfig: { thinkingLevel: reasoningEffort.toUpperCase(), includeThoughts: false },
-      } }),
+      }, ...(webSearch ? { tools: [{ googleSearch: {} }] } : {}) }),
     }, secret);
     let content = ''; let finishReason; let finished = false;
+    const sources = new Map(); let searchSuggestions = ''; let searched = false; let usage;
+    function metadata(event, candidate) {
+      const data = candidate?.groundingMetadata;
+      if (data) {
+        if (data.webSearchQueries?.length || data.groundingChunks?.length) searched = true;
+        if (typeof data.searchEntryPoint?.renderedContent === 'string') searchSuggestions = data.searchEntryPoint.renderedContent.slice(0, 30000);
+        for (const chunk of data.groundingChunks || []) {
+          try { const url = new URL(chunk.web?.uri); if (!['https:', 'http:'].includes(url.protocol)) continue;
+            sources.set(url.href, { url: url.href, title: String(chunk.web.title || url.hostname).slice(0, 160), kind: 'web' });
+          } catch {}
+        }
+      }
+      if (event.usageMetadata) usage = {
+        inputTokens: event.usageMetadata.promptTokenCount,
+        outputTokens: event.usageMetadata.candidatesTokenCount,
+        totalTokens: event.usageMetadata.totalTokenCount,
+      };
+    }
     function accept(event) {
       if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error('Gemini 回复格式异常，请重试。');
       if (event.error) throw apiError(Number(event.error.code) || 500);
       if (event.promptFeedback?.blockReason) throw new Error('Gemini 拦截了本次输入，请调整问题后重试。');
       const candidate = event.candidates?.find(item => item.index === 0 || item.index === undefined);
+      metadata(event, candidate);
       if (!candidate) return;
       const reason = candidate.finishReason;
       if (reason && !['STOP', 'MAX_TOKENS', 'FINISH_REASON_UNSPECIFIED'].includes(reason)) throw new Error('Gemini 未完成回答，可能受到内容限制或生成异常影响，请调整问题后重试。');
@@ -107,16 +132,19 @@ window.GameCoachGemini = (() => {
     }
     function result() {
       if (signal.aborted) throw aborted();
-      if (!finished) throw new Error('连接中断，回复未完整接收，请重试。');
-      if (!content.trim()) throw new Error(finishReason === 'length' ? '本次思考已用完生成额度但未产生答案，请缩短问题或使用 Quick。' : 'Gemini 没有返回可显示的答案。');
-      return { content, finishReason };
+      if (!finished || !content.trim()) {
+        const error = new Error(!finished ? '连接中断，回复未完整接收，请重试。' : finishReason === 'length'
+          ? '本次思考已用完生成额度但未产生答案，请缩短问题或使用 Quick。' : 'Gemini 没有返回可显示的答案。');
+        error.retryable = !content; throw error;
+      }
+      return { content, finishReason, sources: [...sources.values()], searchSuggestions, searched, usage };
     }
     if (!response.headers.get('content-type')?.includes('text/event-stream')) {
       let data;
       try { data = await response.json(); } catch { throw new Error('Gemini 返回了无法解析的回复。'); }
       accept(data); return result();
     }
-    if (!response.body) throw new Error('Gemini 没有返回回复流。');
+    if (!response.body) { const error = new Error('Gemini 没有返回回复流。'); error.retryable = true; throw error; }
     const reader = response.body.getReader(); const decoder = new TextDecoder();
     let buffer = ''; let fields = [];
     function dispatch() {
@@ -152,7 +180,7 @@ window.GameCoachGemini = (() => {
       return result();
     } catch (error) {
       if (signal.aborted) throw aborted();
-      if (error instanceof TypeError) throw new Error('接收 Gemini 回复时连接中断，请检查网络后重试。');
+      if (error instanceof TypeError) { const failure = new Error('接收 Gemini 回复时连接中断，请检查网络后重试。'); failure.retryable = true; throw failure; }
       throw error;
     } finally { try { await reader.cancel(); } catch {} reader.releaseLock(); }
   }
@@ -164,9 +192,9 @@ window.GameCoachGemini = (() => {
     if (!/^[\x21-\x7E]{16,8192}$/.test(clean) || /["'`]/.test(clean)) throw new Error('密钥格式检查未通过：请复制完整 Key（支持 AIza… / AQ.…），不要带引号、内部空格、换行或 Bearer 前缀。');
     window.GameCoachAI.configure({ provider: 'gemini', modes: {
       quick: { model: models.quick, reasoningEffort: 'minimal', maxOutputTokens: 512, timeoutMs: 10000,
-        instructions: '用用户使用的语言直接回答。把可执行的结论放在第一句，再给一句简短理由。不要开场白，不要输出思考过程。' },
+        instructions: '当前是 Quick/快速建议回答档位，不是游戏玩法。自然简短地回应本轮问题，闲聊就正常聊天，分析时先说最有用的建议，通常几句话即可。不固定打印“结论：”“理由：”等栏目，不重复背景，不输出内部思考过程。' },
       coach: { model: models.coach, reasoningEffort: 'medium', maxOutputTokens: 4096, timeoutMs: 60000,
-        instructions: '用用户使用的语言回答。先给结论，再按需要解释依据和替代方案。缺少信息时明确说明，不要编造事实。不要输出内部思考过程。' },
+        instructions: '当前是 Coach/深入讨论回答档位。根据问题决定篇幅，默认两三段或少量要点；追问只解释相关新增问题，不重新写完整报告。用户明确要求全面分析时再展开。自然表达，不固定打印“结论/理由”等栏目；不编造事实，不输出内部思考过程。' },
     } });
     apiKey = clean;
   }

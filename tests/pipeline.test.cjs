@@ -7,10 +7,14 @@ const crypto = require('node:crypto').webcrypto;
 const root = path.join(__dirname, '..');
 function setup(seed = {}) {
   const saved = new Map(Object.entries(seed));
-  const context = { window: {}, setTimeout, clearTimeout, AbortController, DOMException, performance, structuredClone, crypto,
+  const context = { window: {}, setTimeout, clearTimeout, AbortController, DOMException, performance, structuredClone, crypto, URL,
     localStorage: { getItem: k => saved.get(k) ?? null, setItem: (k, v) => saved.set(k, v) } };
   vm.createContext(context);
-  for (const file of ['ai-core/index.js', 'skill/index.js', 'frontend/draft.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js',
+    'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'memory/commands.js',
+    'ai-core/index.js', 'skill/rules.js', 'skill/input/game.js', 'skill/input/knowledge.js', 'skill/input/prepare.js', 'skill/output/index.js', 'skill/index.js']) {
+    vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  }
   return { core: context.window.GameCoachAI, skill: context.window.GameCoachSkill, context, saved };
 }
 test('Quick and Coach choose different execution settings, not prompt instructions', async () => {
@@ -18,11 +22,14 @@ test('Quick and Coach choose different execution settings, not prompt instructio
   core.registerProvider('capture', { async generate(request) { calls.push(request); return { content: 'answer' }; } });
   core.configure({ provider: 'capture' });
   const messages = [{ role: 'user', content: 'any question' }];
-  await skill.run(messages, { mode: 'quick', context: { draft: { ally: ['lulu'] }, privateMarker: 'never add to prompt in placeholder' } });
-  await skill.run(messages, { mode: 'coach' });
+  const context = { draft: { ally: ['lulu'] }, privateMarker: 'never add arbitrary context fields' };
+  await skill.run(messages, { mode: 'quick', context });
+  await skill.run(messages, { mode: 'coach', context });
   assert.equal(calls[0].model, 'demo-instant'); assert.equal(calls[0].reasoningEffort, 'none'); assert.equal(calls[0].maxOutputTokens, 128);
   assert.equal(calls[1].model, 'demo-reasoning'); assert.equal(calls[1].reasoningEffort, 'medium');
-  assert.equal(JSON.stringify(calls[0].input), JSON.stringify(messages)); assert.equal(JSON.stringify(calls[1].input), JSON.stringify(messages));
+  assert.equal(JSON.stringify(calls[0].input), JSON.stringify(calls[1].input));
+  assert.match(JSON.stringify(calls[0].input), /露露/); assert.ok(!JSON.stringify(calls[0].input).includes(context.privateMarker));
+  assert.equal(calls[0].input.at(-1).content, messages[0].content);
   assert.equal('context' in calls[0], false); assert.equal('mode' in calls[0], false);
 });
 test('Skill forwards live text chunks before final response without a second call', async () => {
@@ -74,7 +81,8 @@ test('same chat retains previous turns across Quick to Coach switch', async () =
   core.registerProvider('history', { async generate(request) { calls.push(request); return { content: 'first answer' }; } }); core.configure({ provider: 'history' });
   const input = [{ role: 'user', content: 'first question' }]; const first = await skill.run(input, { mode: 'quick' });
   input.push({ role: 'assistant', content: first.content }, { role: 'user', content: 'explain' }); await skill.run(input, { mode: 'coach' });
-  assert.equal(calls[1].input.length, 3); assert.equal(calls[1].input[1].content, 'first answer'); assert.equal(calls[1].reasoningEffort, 'medium');
+  const conversation = calls[1].input.filter(message => message.role !== 'system' && !message.content.startsWith('【可选背景'));
+  assert.equal(conversation.length, 3); assert.equal(conversation[1].content, 'first answer'); assert.equal(calls[1].reasoningEffort, 'medium');
 });
 test('new response metadata survives local storage and pending replies restore stopped', () => {
   const { context, saved } = setup();
@@ -82,7 +90,11 @@ test('new response metadata survives local storage and pending replies restore s
   vm.runInContext(fs.readFileSync(path.join(root, 'frontend/storage.js'), 'utf8'), context);
   let store = context.window.GCStore;
   store.current().sessions.push({ id: 's-1', title: 'test', created: '', messages: [
-    { id: 'reply-1', role: 'coach', content: 'real', mode: 'coach', draft: { ally: [], enemy: [] }, provider: 'real-provider', model: 'custom', isDemo: false, status: 'complete', reasoningEffort: 'medium' },
+    { id: 'reply-1', role: 'coach', content: 'real', mode: 'coach', draft: { ally: [], enemy: [] }, provider: 'real-provider', model: 'custom', isDemo: false, status: 'complete', reasoningEffort: 'medium',
+      attempts: 3, searched: true, inReplyTo: 'reply-previous', searchSuggestions: '<div>Suggestions</div>',
+      usage: { inputTokens: 12, outputTokens: 8, totalTokens: 25 },
+      usedMemories: [{ id: 'analysis-support', title: '辅助选人' }],
+      sources: [{ title: '官方资料', url: 'https://example.org/hero', kind: 'web' }, { url: 'javascript:alert(1)' }] },
     { id: 'reply-2', role: 'coach', content: 'partial', mode: 'quick', draft: {}, status: 'pending' },
   ] }); store.persist();
   const next = setup(Object.fromEntries(saved)); next.context.window.GAMECOACH_DATA = { champions: [] };
@@ -90,4 +102,9 @@ test('new response metadata survives local storage and pending replies restore s
   const messages = store.current().sessions[0].messages;
   assert.equal(messages[0].isDemo, false); assert.equal(messages[0].provider, 'real-provider'); assert.equal(messages[0].reasoningEffort, 'medium');
   assert.equal(messages[1].status, 'cancelled');
+  assert.equal(messages[0].attempts, 3); assert.equal(messages[0].inReplyTo, 'reply-previous');
+  assert.equal(messages[0].sources.length, 1); assert.equal(messages[0].sources[0].url, 'https://example.org/hero');
+  assert.equal(messages[0].searched, true); assert.equal(messages[0].usage.totalTokens, 25);
+  assert.equal(messages[0].searchSuggestions, '<div>Suggestions</div>');
+  assert.equal(messages[0].usedMemories[0].id, 'analysis-support');
 });

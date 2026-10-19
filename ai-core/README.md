@@ -17,7 +17,11 @@
 
 输入支持字符串或 system / developer / user / assistant 消息；系统内容合并为 systemInstruction，assistant 转为 model，连续同角色消息合并。内容片段支持 text、input_text、Gemini 原生 inlineData / fileData 和 image_url 的 base64 图片。当前网页仍只有文字输入。未知片段明确报错，不静默丢弃。
 
-SSE 处理任意字节分片、UTF-8、CRLF / LF / CR、注释、多行 data。只输出非 thought 文本，依靠 Gemini 的 STOP / MAX_TOKENS 判断结束，不要求 OpenAI 的 [DONE]。MAX_TOKENS 映射为 finishReason=length；缺少结束状态、被拦截、异常停止、空回答均报错，不把不完整内容标为成功。取消和超时由核心传递至 fetch；没有自动重试或其他平台回退。
+SSE 处理任意字节分片、UTF-8、CRLF / LF / CR、注释、多行 data。只输出非 thought 文本，依靠 Gemini 的 STOP / MAX_TOKENS 判断结束，不要求 OpenAI 的 [DONE]。MAX_TOKENS 映射为 finishReason=length；缺少结束状态、被拦截、异常停止、空回答均报错，不把不完整内容标为成功。取消和超时由核心传递至 fetch。
+
+临时错误最多尝试 3 次：网络错误、408、429、500/502/503/504，以及未产生正文的空回答或中断。指数退避加少量抖动，等待不短于 Retry-After；所有尝试共用原始总超时。密钥/权限/参数错误、取消、内容拦截不重试；已发出正文不自动重生成，避免拼接不同答案。回调 `onRetry({ attempt, maxAttempts, delayMs })` 提供进度；结果或异常附实际 `attempts`。不回退其他平台、不自动开通付费。
+
+调用选项 `webSearch: true` 添加 `tools: [{ googleSearch: {} }]`；默认 false。是否允许检索由上层决定，不在核心识别游戏意图。返回 `sources`、`searchSuggestions`、`searched`，以及接口提供时的 `usage`。searched 只在接口返回实际搜索查询或检索片段时为 true，允许工具不等于使用工具。资料来源只接受 HTTP(S) 地址。页面负责展示来源与 Google 返回的搜索建议；实际费用、额度和可用性由 Google 与账号决定。
 
 `GameCoachGemini.testConnection()` 通过两个 GET models/<model> 检查密钥与模型元信息，核实 generateContent 能力；不生成内容，不能证明生成配额或计费状态正常。须发送一条消息验证真实回答。`models` 是只读公开配置，不含凭证。
 

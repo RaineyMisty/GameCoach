@@ -39,12 +39,12 @@ test('normalization preserves empty slots and removes unknown or duplicate heroe
 test('role slots round trip through local storage and exported user backups', () => {
   const saved = new Map(); const context = { window: {}, crypto: require('node:crypto').webcrypto, structuredClone,
     localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } };
-  vm.createContext(context); for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
+  vm.createContext(context); for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'memory/defaults.js', 'memory/index.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   const store = context.window.GCStore; store.current().draft = context.window.GameCoachDraft.normalize({ ally: [null, 'lulu', null, null, 'jinx'], enemy: [null, 'lulu', 'ahri', null, null] }); store.persist();
   const backup = JSON.parse(JSON.stringify(store.exportUser())); store.importBackup(backup);
   assert.deepEqual(plain(store.current().draft), backup.user.draft); assert.equal(store.current().draft.ally[1], 'lulu');
   const reloaded = { window: {}, localStorage: context.localStorage }; vm.createContext(reloaded);
-  for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), reloaded);
+  for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'memory/defaults.js', 'memory/index.js', 'frontend/storage.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), reloaded);
   assert.deepEqual(plain(reloaded.window.GCStore.current().draft), backup.user.draft);
 });
 test('official rosters have searchable names, supported roles and local square portraits from Riot', () => {
@@ -190,7 +190,7 @@ test('normalization accepts legacy drafts and sanitizes mode, picks and hidden b
 test('BP mode and hidden bans persist through storage, export, import and reload', () => {
   const saved = new Map(); const context = { window: {}, crypto: require('node:crypto').webcrypto, structuredClone,
     localStorage: { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } };
-  vm.createContext(context); const files = ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/storage.js'];
+  vm.createContext(context); const files = ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js', 'memory/defaults.js', 'memory/index.js', 'frontend/storage.js'];
   for (const file of files) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   const ops = context.window.GameCoachDraft; const store = context.window.GCStore;
   let draft = ops.setBPMode(ops.empty(), true);
