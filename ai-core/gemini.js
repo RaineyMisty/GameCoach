@@ -5,6 +5,10 @@ window.GameCoachGemini = (() => {
   const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
   const origin = 'https://generativelanguage.googleapis.com/v1beta';
   const models = Object.freeze({ quick: 'gemini-3.5-flash-lite', coach: 'gemini-3.8-flash' });
+  const modeInstructions = Object.freeze({
+    quick: '当前是 Quick/快速建议回答档位，不是游戏玩法。自然简短地回应本轮问题，闲聊就正常聊天，分析时先说最有用的建议，通常几句话即可。不固定打印“结论：”“理由：”等栏目，不重复背景，不输出内部思考过程。',
+    coach: 'Coach：只展开本轮问题，默认两三段；用户要求时再全面深入，不展示内部思考。',
+  });
   const demoProfiles = { quick: window.GameCoachAI.getProfile('quick'), coach: window.GameCoachAI.getProfile('coach') };
   let apiKey = '';
   const aborted = () => new DOMException(tr("请求已停止。"), 'AbortError');
@@ -93,7 +97,12 @@ window.GameCoachGemini = (() => {
     if (signal.aborted) throw aborted();
     const response = await request(`/models/${model}:streamGenerateContent?alt=sse`, {
       method: 'POST', signal,
-      body: JSON.stringify({ ...normalize(input, instructions), generationConfig: {
+      body: JSON.stringify({ ...normalize(input, (() => {
+        const key = model === models.coach ? modeInstructions.coach : model === models.quick ? modeInstructions.quick : null;
+        // An activated key can survive a language switch. Resolve built-in copy
+        // for this request; preserve custom instructions configured by callers.
+        return key && (instructions === key || instructions === window.GAMECOACH_ENGLISH?.[key]) ? tr(key) : instructions;
+      })()), generationConfig: {
         maxOutputTokens, thinkingConfig: { thinkingLevel: reasoningEffort.toUpperCase(), includeThoughts: false },
       }, ...(webSearch ? { tools: [{ googleSearch: {} }] } : {}) }),
     }, secret);
@@ -193,9 +202,9 @@ window.GameCoachGemini = (() => {
     if (!/^[\x21-\x7E]{16,8192}$/.test(clean) || /["'`]/.test(clean)) throw new Error(tr("密钥格式检查未通过：请复制完整 Key（支持 AIza… / AQ.…），不要带引号、内部空格、换行或 Bearer 前缀。"));
     window.GameCoachAI.configure({ provider: 'gemini', modes: {
       quick: { model: models.quick, reasoningEffort: 'minimal', maxOutputTokens: 512, timeoutMs: 10000,
-        instructions: tr("当前是 Quick/快速建议回答档位，不是游戏玩法。自然简短地回应本轮问题，闲聊就正常聊天，分析时先说最有用的建议，通常几句话即可。不固定打印“结论：”“理由：”等栏目，不重复背景，不输出内部思考过程。") },
+        instructions: tr(modeInstructions.quick) },
       coach: { model: models.coach, reasoningEffort: 'medium', maxOutputTokens: 4096, timeoutMs: 60000,
-        instructions: tr("当前是 Coach/深入讨论回答档位。根据问题决定篇幅，默认两三段或少量要点；追问只解释相关新增问题，不重新写完整报告。用户明确要求全面分析时再展开。自然表达，不固定打印“结论/理由”等栏目；不编造事实，不输出内部思考过程。") },
+        instructions: tr(modeInstructions.coach) },
     } });
     apiKey = clean;
   }

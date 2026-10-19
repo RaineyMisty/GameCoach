@@ -9,7 +9,7 @@ window.GameCoachMemoryRetrieval = (() => {
     draft: /选什么|选啥|选谁|选人|选择.*英雄|英雄.*选择|推荐|补什么|补谁|阵容|\bbp\b|禁选|\bpick\b|\bdraft\b|\bban\b|recommend|composition|lineup/i,
     review: /复盘|战报|赢了|输了|这局赢|这把赢|打几分|评价|可行|能玩吗|review|we won|we lost|I won|I lost|evaluate|viable/i,
   };
-  function select(raw, input, { expansion, draft } = {}) {
+  function select(raw, input, { expansion, draft, maxEntries = 6, maxCharacters } = {}) {
     if (!raw) return { text: '', entries: [], characters: 0 };
     const memory = window.GameCoachMemory.normalize(raw);
     if (!memory.enabled) return { text: '', entries: [], characters: 0 };
@@ -32,10 +32,13 @@ window.GameCoachMemoryRetrieval = (() => {
       const player = item.topics.includes('player') && personal;
       return { item, index, score: matches * 4 + (general ? 2 : 0) + (player ? 10 : 0) };
     }).filter(row => row.score > 0).sort((a, b) => b.score - a.score || a.index - b.index);
-    const selected = []; let remaining = window.GameCoachI18n?.locale === 'en' ? 1300 : 1400;
+    const selected = [];
+    const entryLimit = Number.isFinite(maxEntries) ? Math.max(1, Math.min(6, Math.floor(maxEntries))) : 6;
+    const defaultBudget = window.GameCoachI18n?.locale === 'en' ? 1300 : 1400;
+    let remaining = Number.isFinite(maxCharacters) ? Math.max(80, Math.min(defaultBudget, Math.floor(maxCharacters))) : defaultBudget;
     for (const candidate of candidates) {
       const item = window.GameCoachMemory.display(candidate.item);
-      if (selected.length >= 6 || remaining < 80) break;
+      if (selected.length >= entryLimit || remaining < 80) break;
       const allowance = Math.min(400, remaining - item.title.length - 20);
       const excerpt = item.text.length > allowance ? item.text.slice(0, allowance - 5) + '…（节选）' : item.text;
       const line = '[' + item.id + '] ' + item.title + '：' + excerpt;

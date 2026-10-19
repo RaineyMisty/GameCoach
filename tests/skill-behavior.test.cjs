@@ -11,7 +11,7 @@ function setup() {
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'resources/lol/knowledge.js',
     'resources/lolm/knowledge.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/conversation.js', 'ai-core/index.js',
     'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'memory/commands.js',
-    'skill/rules.js', 'skill/input/game.js', 'skill/input/knowledge.js', 'skill/input/prepare.js',
+    'skill/rules.js', 'skill/input/game.js', 'skill/input/knowledge.js', 'skill/input/history.js', 'skill/input/prepare.js',
     'skill/output/index.js', 'skill/index.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx);
   return { ...ctx.window, ctx };
 }

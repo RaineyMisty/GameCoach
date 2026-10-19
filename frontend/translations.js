@@ -1,6 +1,7 @@
 'use strict';
 // English UI copy. Chinese source strings are stable keys; no user data belongs here.
 window.GAMECOACH_ENGLISH = Object.freeze({
+  "Coach：只展开本轮问题，默认两三段；用户要求时再全面深入，不展示内部思考。": "Coach: Explore the current question, usually in two or three paragraphs. Go deeper when requested. Do not expose internal reasoning.",
   "自然简短，直接回应": "Short, direct answers",
   "按问题展开讨论": "Explore what matters",
   "切换游戏，当前：": "Switch game. Current: ",
