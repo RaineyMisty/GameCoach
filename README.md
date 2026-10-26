@@ -10,9 +10,9 @@
   An AI game coach for players, viewers, and coaches.
 </p>
 
-GameCoach aims to help people with different levels of experience and different goals find the guidance they need. You might be a beginner discovering a game, an experienced player looking to improve, a viewer who has never played but wants to understand a match, or a coach studying team compositions and tactics.
+GameCoach aims to help people with different levels of experience and goals find the guidance they need. They might be a beginner discovering a game, an experienced player looking to improve, a viewer who has never played but wants to understand a match, or a coach studying team compositions and tactics.
 
-From learning the rules and understanding how to play to discussing in-game decisions and tactical choices in competitive matches, you can start with your own questions. Through conversation, follow-up questions, and additional context, GameCoach aims to offer explanations and suggestions suited to your background and goals.
+The AI program assists players learning the rules, understanding how to play, discussing in-game decisions and tactical choices in competitive matches. Users start with their own questions. Through conversation, follow-up questions, and additional context, GameCoach aims to offer explanations and suggestions suited to the their background and goals.
 
 ## Features and Usage
 
