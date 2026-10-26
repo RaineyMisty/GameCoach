@@ -12,21 +12,43 @@ window.GameCoachGemini = (() => {
   const demoProfiles = { quick: window.GameCoachAI.getProfile('quick'), coach: window.GameCoachAI.getProfile('coach') };
   let apiKey = '';
   const aborted = () => new DOMException(tr("请求已停止。"), 'AbortError');
-  function apiError(status, code) {
-    const messages = {
-      400: tr("Gemini 拒绝了请求，请检查 API Key、模型参数，以及项目是否可以使用免费档。"),
-      401: tr("Gemini API Key 无效或已失效，请重新填写。"),
-      403: tr("Gemini 拒绝访问，请检查密钥限制、项目权限或所在地区是否受支持。"),
-      404: tr("Gemini 模型不可用，请检查当前账号的模型权限和模型配置。"),
-      413: tr("本次上下文过长，请开始新对话或缩短输入。"),
-      429: tr("Gemini 请求过于频繁或当前项目额度不足，请在 AI Studio 查看限额后重试。"),
+  function apiError(status, upstream = {}) {
+    // Only known diagnostic codes are displayed. Never echo upstream messages,
+    // metadata, URLs or arbitrary reason strings: they can contain credentials.
+    const reasons = {
+      API_KEY_INVALID: tr("Google 明确返回密钥无效，请重新复制完整 Key 或创建新 Key。"),
+      API_KEY_EXPIRED: tr("Google 明确返回密钥已过期，请创建新 Key。"),
+      API_KEY_HTTP_REFERRER_BLOCKED: tr("密钥的网站来源限制拒绝了请求，请核对允许的网站和请求的 Referer。"),
+      API_KEY_IP_ADDRESS_BLOCKED: tr("密钥的 IP 限制拒绝了请求；切换 Wi-Fi 或热点后出口 IP 可能改变。"),
+      API_KEY_SERVICE_BLOCKED: tr("密钥未获准调用此 API，请检查 API 限制。"),
+      SERVICE_DISABLED: tr("项目未启用此 API，请检查项目的 API 服务设置。"),
+      BILLING_DISABLED: tr("项目计费未启用或不可用，请检查项目计费与模型要求。"),
+      CONSUMER_INVALID: tr("请求关联的项目无效，请检查密钥所属项目。"),
+      ACCESS_TOKEN_EXPIRED: tr("Google 返回认证令牌已过期，请检查凭证类型。"),
     };
-    const error = new Error(code === 'API_KEY_INVALID' || code === 'API_KEY_EXPIRED'
-      ? tr("Gemini API Key 无效或已失效，请从 Google AI Studio 重新复制密钥。")
-      : messages[status] || tr("Gemini 服务暂时不可用（HTTP {0}），请稍后再试。", status));
-    // Never display raw upstream messages: they can echo credentials or input.
+    const details = Array.isArray(upstream?.details) ? upstream.details : [];
+    const reason = details.map(item => item?.reason).find(value => Object.hasOwn(reasons, value)) || '';
+    const statuses = ['INVALID_ARGUMENT', 'UNAUTHENTICATED', 'PERMISSION_DENIED', 'NOT_FOUND',
+      'RESOURCE_EXHAUSTED', 'FAILED_PRECONDITION', 'UNAVAILABLE', 'INTERNAL', 'DEADLINE_EXCEEDED'];
+    const rpcStatus = statuses.includes(upstream?.status) ? upstream.status : '';
+    const messages = {
+      400: tr("请求参数不被接受，请检查模型、思考参数和凭证；尚不能确定是密钥问题。"),
+      401: tr("身份验证失败；Google 未明确说明密钥无效或过期，请检查凭证与认证设置。"),
+      403: tr("访问被拒绝，请检查密钥的网站/IP/API 限制、项目权限及地区支持；不代表密钥已过期。"),
+      404: tr("模型或接口不存在，或当前项目无法访问，请检查模型配置。"),
+      408: tr("Google 接收请求超时，请稍后重试。"),
+      413: tr("本次上下文过长，请开始新对话或缩短输入。"),
+      429: tr("请求频率或项目额度达到限制，请检查 AI Studio 配额和计费状态。"),
+      500: tr("Google 服务内部错误，请稍后重试。"),
+      502: tr("Google 网关错误，请稍后重试。"),
+      503: tr("Google 服务暂时不可用，请稍后重试。"),
+      504: tr("Google 服务处理超时，请稍后重试。"),
+    };
+    const diagnostic = ['HTTP ' + status, rpcStatus, reason].filter(Boolean).join(' / ');
+    const error = new Error((reasons[reason] || messages[status] || tr("Google 拒绝了请求，未提供可安全展示的具体原因。")) + ' [' + diagnostic + ']');
     error.name = 'GeminiError'; error.status = status;
-    error.retryable = [408, 429, 500, 502, 503, 504].includes(status) && !['API_KEY_INVALID', 'API_KEY_EXPIRED'].includes(code);
+    error.reason = reason; error.rpcStatus = rpcStatus;
+    error.retryable = [408, 429, 500, 502, 503, 504].includes(status) && !reason;
     return error;
   }
   async function request(path, options, secret) {
@@ -38,8 +60,7 @@ window.GameCoachGemini = (() => {
       if (!response.ok) {
         let data;
         try { data = await response.json(); } catch {}
-        const code = data?.error?.details?.find(item => typeof item.reason === 'string')?.reason;
-        const error = apiError(response.status, code);
+        const error = apiError(response.status, data?.error);
         const retry = response.headers.get('retry-after');
         if (retry) {
           const delay = /^\d{1,6}$/.test(retry) ? Number(retry) * 1000 : Date.parse(retry) - Date.now();
@@ -52,7 +73,7 @@ window.GameCoachGemini = (() => {
     } catch (error) {
       if (options.signal?.aborted) throw aborted();
       if (error.name === 'GeminiError') throw error;
-      const failure = new Error(tr("无法连接 Gemini。请检查网络连接；如果浏览器阻止本地文件请求，请改用本地网页服务或 GitHub Pages 的 HTTPS 页面。"));
+      const failure = new Error(tr("浏览器未取得可读取的 HTTP 响应，无法判断密钥是否有效。可能是网络/DNS/TLS、跨域或浏览器拦截；请查看开发者工具的 Network/Console。") + " [NO_HTTP_RESPONSE]");
       failure.retryable = true; throw failure;
     }
   }
@@ -127,7 +148,7 @@ window.GameCoachGemini = (() => {
     }
     function accept(event) {
       if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error(tr("Gemini 回复格式异常，请重试。"));
-      if (event.error) throw apiError(Number(event.error.code) || 500);
+      if (event.error) throw apiError(Number.isInteger(event.error.code) && event.error.code >= 400 && event.error.code <= 599 ? event.error.code : 500, event.error);
       if (event.promptFeedback?.blockReason) throw new Error(tr("Gemini 拦截了本次输入，请调整问题后重试。"));
       const candidate = event.candidates?.find(item => item.index === 0 || item.index === undefined);
       metadata(event, candidate);

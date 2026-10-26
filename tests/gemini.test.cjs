@@ -226,3 +226,59 @@ test('HTTP 503 retries before text and succeeds while 401 does not retry', async
     assert.equal(calls, status === 503 ? 2 : 1);
   }
 });
+
+test('diagnostics distinguish authentication, explicit key errors, and restriction reasons without leaking upstream data', async () => {
+  const cases = [
+    [401, { status: 'UNAUTHENTICATED' }, /身份验证失败/, ''],
+    [400, { details: [{ reason: 'API_KEY_INVALID' }] }, /明确返回密钥无效/, 'API_KEY_INVALID'],
+    [400, { details: [{ reason: 'API_KEY_EXPIRED' }] }, /明确返回密钥已过期/, 'API_KEY_EXPIRED'],
+    [403, { details: [{ reason: 'API_KEY_IP_ADDRESS_BLOCKED' }] }, /IP 限制/, 'API_KEY_IP_ADDRESS_BLOCKED'],
+    [403, { details: [{ reason: 'API_KEY_HTTP_REFERRER_BLOCKED' }] }, /网站来源限制/, 'API_KEY_HTTP_REFERRER_BLOCKED'],
+    [403, { details: [{ reason: 'API_KEY_SERVICE_BLOCKED' }] }, /API 限制/, 'API_KEY_SERVICE_BLOCKED'],
+    [400, { details: [{ reason: TEST_KEY }, { reason: 'BILLING_DISABLED' }] }, /计费/, 'BILLING_DISABLED'],
+    [404, { status: 'NOT_FOUND' }, /模型或接口/, ''],
+    [429, { status: 'RESOURCE_EXHAUSTED' }, /额度/, ''],
+    [400, { status: TEST_KEY, details: [{ reason: TEST_KEY }] }, /请求参数/, ''],
+  ];
+  for (const [status, upstream, pattern, reason] of cases) {
+    const { ai, gemini } = setup(async () => new Response(JSON.stringify({ error: { ...upstream, message: TEST_KEY, metadata: { key: TEST_KEY } } }), { status, headers: { 'Retry-After': '60' } }));
+    gemini.activate(TEST_KEY);
+    await assert.rejects(ai.call('hello'), error => {
+      assert.match(error.message, pattern); assert.match(error.message, new RegExp('HTTP ' + status));
+      assert.equal(error.reason, reason); assert.ok(!error.message.includes(TEST_KEY));
+      if (status === 401) assert.doesNotMatch(error.message, /明确返回/);
+      return true;
+    });
+  }
+});
+
+test('transport failure is not diagnosed as an invalid key', async () => {
+  const { gemini } = setup(async () => { throw new TypeError(TEST_KEY); }); gemini.activate(TEST_KEY);
+  await assert.rejects(gemini.testConnection(), error => {
+    assert.match(error.message, /NO_HTTP_RESPONSE/); assert.match(error.message, /无法判断密钥/);
+    assert.ok(!error.message.includes(TEST_KEY)); return true;
+  });
+});
+
+test('stream errors preserve safe Google reason codes', async () => {
+  const { ai, gemini } = setup(async () => sse([{ error: { code: 403, status: 'PERMISSION_DENIED', message: TEST_KEY,
+    details: [{ reason: 'API_KEY_IP_ADDRESS_BLOCKED' }] } }])); gemini.activate(TEST_KEY);
+  await assert.rejects(ai.call('hello'), error => {
+    assert.match(error.message, /HTTP 403 \/ PERMISSION_DENIED \/ API_KEY_IP_ADDRESS_BLOCKED/);
+    assert.ok(!error.message.includes(TEST_KEY)); return true;
+  });
+});
+
+test('new diagnostics are translated for English UI', async () => {
+  const context = { window: {}, fetch: async () => new Response(JSON.stringify({ error: { status: 'UNAUTHENTICATED' } }), { status: 401 }),
+    setTimeout, clearTimeout, AbortController, DOMException, structuredClone, TextDecoder, performance, URL };
+  vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(root, 'frontend/translations.js'), 'utf8'), context);
+  context.window.GameCoachI18n = { t: (value, ...args) => (context.window.GAMECOACH_ENGLISH[value] || value).replace(/\{(\d+)\}/g, (_, i) => args[Number(i)]) };
+  for (const file of ['ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
+  context.window.GameCoachGemini.activate(TEST_KEY);
+  await assert.rejects(context.window.GameCoachAI.call('hello'), error => {
+    assert.match(error.message, /Authentication failed/); assert.match(error.message, /HTTP 401 \/ UNAUTHENTICATED/);
+    assert.ok(!/[\u3400-\u9fff]/.test(error.message)); return true;
+  });
+});
