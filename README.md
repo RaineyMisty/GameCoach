@@ -19,25 +19,27 @@ The AI program assists players learning the rules, understanding how to play, di
 - **Team compositions and draft:** Edit both teams, adjust positions, and use different ban/pick formats.
 - **Quick / Coach modes:** Get quick suggestions or explore a question in depth.
 - **Personal memory:** Save and manage your background, preferences, and coaching needs.
-- **Reference materials:** Draw on game information and search the web when needed.
+- **Reference materials:** Draw on bundled game reference snapshots.
 - **Multilingual support:** Access the interface and guidance in different languages.
 
 **[Open GameCoach](https://raineymisty.github.io/GameCoach/)**
 
-Open the settings panel on the right, enter your own API key for a supported AI provider, choose a mode, and start a conversation.
+The static website supports demo use. For real API conversations, start the Python backend or use your deployed HTTPS site. Local database Default / Import selects user data; the separate API connection form accepts the supported provider and Key. See [setup and secure team deployment](./DEPLOYMENT.md).
+
+See [CHANGELOG.md](./CHANGELOG.md) for the current changes, suggested commit messages, actual Git history, and a detailed project tree marking browser and server responsibilities. The deployment guide also identifies the remaining work for a GitHub Pages frontend with a remote API.
 
 ## Architecture and Privacy
 
-GameCoach is built with **HTML, CSS, and JavaScript** and currently runs as a static website with no application backend. The frontend handles interaction and local data; **Skill** prepares the relevant team compositions, conversation history, memories, and game references; **AI Core** handles model requests and streaming responses.
+GameCoach is built with **HTML, CSS, and JavaScript** and supports static use plus an optional **FastAPI + SQLite** local backend. The frontend handles interaction and local data; **Skill** prepares team compositions, memories and game references; **AI Core** handles model requests. One backend chat API supports Gemini, DeepSeek, OpenAI (ChatGPT API), xAI (Grok) and Anthropic (Claude). It validates sessions, loads SQLite history, calls the selected provider, saves the profile and completed exchange, then returns a normalized answer. Switching providers preserves the conversation. See [backend setup and API](./back-end/README.md).
 
 ```text
-Frontend → Skill → AI Core → Skill → Frontend
-             ↑
-      Memory + game references
+Browser → same-origin Python API → model provider
+                     ↓
+           encrypted SQLite user history + training memory
 ```
 
 **GameCoach does not capture your screen, read the game client, or automatically collect live match data.** Team compositions and match details are provided by you. Bundled game references are local snapshots of publicly available game information.
 
-Profiles, chat history, and personal memories are stored locally in your browser. You can export backups or explicitly connect a local folder to save them. There are no cloud accounts or automatic uploads of your complete local user archive.
+User profiles, history and training memory are shared across providers for the same server user. The browser keeps a local cache and can import/export user JSON. Completed existing chats can be imported into SQLite. Training memory is retrieved by the backend, not model fine-tuning.
 
-When you use an AI service, your question and the relevant context are sent directly from your browser to the configured provider. If web search is enabled, searches are handled through that provider. Your API key stays in the current page's memory, is excluded from saved user data and exports, and is cleared when you refresh or close the page.
+The browser sends credentials only to your backend over HTTPS (loopback HTTP is allowed for local development). Provider requests and DNS happen on the server. User Keys and sensitive data fields are encrypted at rest, never returned by the API, and excluded from ordinary user exports. A separate private recovery file restores the server identity; protect it like an account credential. Team deployments use a private runtime config and an access code; the shareable source package excludes Keys and user data. See [DEPLOYMENT.md](./DEPLOYMENT.md) for steps and limits, including why a relay does not guarantee a campus network cannot observe or block your site.
