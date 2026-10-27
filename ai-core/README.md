@@ -1,5 +1,7 @@
 # ai-core
 
+当前网页只加载通用 `backend.js` 适配器，模型 HTTP / DNS、凭证、历史和 training memory 选择在 Python 后端。通用表单支持五家厂商；Local database 的 Default / Import 与厂商无关。安全配置及团队部署见 [DEPLOYMENT.md](../DEPLOYMENT.md)。下文 Gemini 直连 / SSE 说明属于保留的独立模块，当前网页不加载该模块。
+
 通用模型调用层，不读取阵容、用户文件或页面 DOM。Skill 传入普通文本或消息列表；Quick / Coach 是独立执行选项。
 
 `GameCoachAI.call(input, { mode: 'quick', signal, onDelta })` 返回 content、mode、provider、model、isDemo、reasoningEffort、finishReason 和 timings。`registerProvider(name, { isDemo, generate })` 注册适配器；generate 接收 input、model、reasoningEffort、maxOutputTokens、timeoutMs、instructions、signal、onDelta，返回 `{ content, finishReason? }`。最终文本必须和已发送片段一致。
@@ -25,6 +27,10 @@ SSE 处理任意字节分片、UTF-8、CRLF / LF / CR、注释、多行 data。�
 
 `GameCoachGemini.testConnection()` 通过两个 GET models/<model> 检查密钥与模型元信息，核实 generateContent 能力；不生成内容，不能证明生成配额或计费状态正常。须发送一条消息验证真实回答。`models` 是只读公开配置，不含凭证。
 
-API Key / HTTP 错误不回显原始服务器文本，避免上游信息包含 Key。所有凭证仅用于用户自己的浏览器页面，不实现共享服务密钥或 Backend。刷新恢复 demo；用户资料和聊天保留。测试模拟官方响应，不声称无 Key 时完成真实推理验证。
+API Key / HTTP 错误不回显原始服务器文本，避免上游信息包含 Key。浏览器直连 Gemini 的凭证仅用于用户自己的页面。刷新恢复 demo；用户资料和聊天保留。测试模拟官方响应，不声称无 Key 时完成真实推理验证。
+
+可选 `backend.js` provider 调用同源 `/api`，服务端密钥只由 Python 读取。调用选项 `conversation: { id, userId, user: { name, profile } }` 仅供适配器定位本地用户和对话，服务端身份始终来自 Bearer 令牌。Skill 只准备本轮消息，历史由 SQLite 提供。后端模式使用 JSON 完整回复，不启用流式和联网搜索；返回实际服务端模型名。安装及接口见 [back-end/README.md](../back-end/README.md)。
+
+`GameCoachBackend.testConnection(provider)` 和 `activate(provider)` 接受 `gemini` / `deepseek` / `openai` / `grok` / `claude`，省略时使用服务端默认。聊天始终调用 `/api/chat`；统一输出正文、结束原因、用量和模型名，`upstreamProvider` 标识服务端选择的模型厂商，随前端历史保存。各厂商的协议映射集中在 `back-end/providers.py`，不会把服务端 Key 放进前端。
 
 参考：[Gemini REST](https://ai.google.dev/api/generate-content)、[模型](https://ai.google.dev/gemini-api/docs/models)、[思考档](https://ai.google.dev/gemini-api/docs/thinking)。
