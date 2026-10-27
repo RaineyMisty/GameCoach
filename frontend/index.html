@@ -22,7 +22,7 @@
   <script src="../memory/commands.js" defer></script>
   <script src="./storage.js" defer></script>
   <script src="../ai-core/index.js" defer></script>
-  <script src="../ai-core/gemini.js" defer></script>
+  <script src="../ai-core/backend.js" defer></script>
   <script src="../skill/input/game.js" defer></script>
   <script src="../skill/rules.js" defer></script>
   <script src="../skill/input/knowledge.js" defer></script>
@@ -114,17 +114,22 @@
     <div class="drawer-header"><div><p class="eyebrow">YOUR SPACE</p><h2 id="account-title">我的用户</h2></div><button class="icon-button" data-close="account-dialog" aria-label="关闭用户系统">×</button></div>
     <div class="drawer-content">
       <div class="user-summary"><span class="avatar large-avatar" id="account-avatar">我</span><div><h3 id="account-name"></h3><p>本地用户 · 独立资料与对话</p></div></div>
-      <section class="settings-section" id="ai-connection-section"><h3>AI 连接 <span id="ai-state" class="connection-badge">演示模式</span></h3>
+      <section class="settings-section" id="local-database-section"><h3>Local database</h3>
+        <label for="database-source">数据库来源<select id="database-source"><option value="default">Default</option><option value="import">Import…</option></select></label>
+        <p class="fine-print">Default 使用当前默认用户数据；Import 导入用户 JSON 中的历史、资料和 training memory，不导入 API Key。</p>
+      </section>
+      <section class="settings-section" id="ai-connection-section"><h3>API 连接 <span id="ai-state" class="connection-badge">演示模式</span></h3>
         <p id="ai-connection-status" class="subtle"></p>
         <form id="ai-connection-form" autocomplete="off">
-          <label for="gemini-api-key">Gemini API Key<input id="gemini-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴你自己的 API Key" required></label>
-          <button type="submit" class="primary-button">启用 Gemini</button>
+          <label for="api-provider">API 厂商<select id="api-provider"><option value="">服务器默认</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI (ChatGPT API)</option><option value="grok">xAI (Grok)</option><option value="claude">Anthropic (Claude)</option><option value="gemini">Google Gemini</option></select></label>
+          <label for="api-key">API Key<input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="输入 Key；留空使用已保存或服务器默认 Key"></label>
+          <label for="team-access-code">团队访问码<input id="team-access-code" type="password" autocomplete="off" spellcheck="false" placeholder="本地可留空；团队部署由管理员提供"></label>
+          <button id="connect-api" type="submit" class="primary-button">连接 API</button>
         </form>
-        <p class="fine-print" id="ai-key-help">支持新版 AQ.… 和旧版 AIza… 密钥。请在 AI Studio 点击复制按钮，粘贴完整值。</p>
-        <label class="search-setting">资料检索<select id="search-mode"><option value="auto">按需联网</option><option value="on">允许模型联网核实</option><option value="off">仅使用本地资料</option></select></label>
-        <p class="fine-print">按需模式在询问版本、更新或明确要求查资料时允许 Google Search；实际搜索由模型决定。联网可能增加等待时间与账号用量，回答下会显示实际资料来源。</p>
-        <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开并清除密钥</button><a class="text-button" href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">在 Google AI Studio 申请 Key ↗</a></div>
-        <p class="fine-print">使用你自己的 Gemini API Key 连接。密钥只在当前页面内存中，刷新后重填，不写入用户文件。发问时，问题、相关对话、当前游戏、阵容及按需选取的记忆会发送给 Google Gemini。</p>
+        <p class="fine-print" id="ai-key-help">支持 DeepSeek、OpenAI（ChatGPT API）、xAI（Grok）、Anthropic（Claude）、Google Gemini。</p>
+        <p class="fine-print">网页只连接自己的服务器，由服务器处理厂商请求和 DNS。Key 加密保存在当前用户的服务器记录中，不写入浏览器存储或普通备份；更换厂商共用同一用户的历史和 training memory。</p>
+        <label class="search-setting" hidden>资料检索<select id="search-mode"><option value="off">仅使用本地资料</option></select></label>
+        <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开 API</button><button id="forget-api-key" class="text-button">删除当前厂商的已保存 Key</button></div>
         <p id="ai-feedback" class="form-status" role="status"></p>
       </section>
       <section class="settings-section"><h3>切换用户</h3><div id="user-list" class="user-list"></div>
@@ -139,9 +144,11 @@
         <label>打法与回答偏好<textarea name="preferences" maxlength="1000" rows="3" placeholder="喜欢游走，希望先给结论…"></textarea></label>
         <button type="submit" class="primary-button">保存为个人记忆</button><p id="profile-status" class="form-status" role="status"></p>
       </form></section>
-      <section class="settings-section"><h3>本地数据</h3><p id="folder-status" class="subtle">当前保存在此浏览器。</p><button id="connect-folder" class="secondary-button">连接本地用户文件夹</button>
+      <section class="settings-section"><h3>备份与恢复</h3><p id="folder-status" class="subtle">当前保存在此浏览器。</p><button id="connect-folder" class="secondary-button">连接本地用户文件夹</button>
         <p class="fine-print">选择项目的 users 文件夹后，每个用户会保存为独立 JSON 文件。文件保留在电脑上，不会上传。刷新页面后需重新连接目录。</p>
         <div class="data-actions"><button id="export-user" class="text-button">导出当前用户</button><label class="text-button file-label">导入用户备份<input type="file" id="import-user" accept=".json,application/json" class="sr-only"></label></div>
+        <div class="data-actions"><button id="export-private-access" class="text-button">导出私有恢复文件</button><label class="text-button file-label">恢复服务器用户<input type="file" id="import-private-access" accept=".json" class="sr-only"></label></div>
+        <p class="fine-print">私有恢复文件可访问你的服务器用户，不含厂商 Key，但需要保密。普通用户备份仍只包含资料、历史和记忆。</p>
         <p id="account-status" class="form-status" role="status"></p>
       </section>
     </div>
