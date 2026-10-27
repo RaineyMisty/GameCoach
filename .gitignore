@@ -1,3 +1,14 @@
 /users/
 .env
 node_modules/
+.venv/
+__pycache__/
+*.pyc
+/back-end/data/
+.secrets/
+dist/
+*.sqlite3
+*.sqlite3-*
+.env.*
+!.env.example
+/LOCAL_COMMIT_NOTES.md
