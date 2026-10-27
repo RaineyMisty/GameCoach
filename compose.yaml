@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      GAMECOACH_CONFIG_FILE: /run/secrets/gamecoach_runtime
+      GAMECOACH_DB: /app/back-end/data/gamecoach.sqlite3
+    secrets:
+      - gamecoach_runtime
+    volumes:
+      - gamecoach_data:/app/back-end/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # No published app port: all public traffic goes through HTTPS at Caddy.
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      GAMECOACH_DOMAIN: ${GAMECOACH_DOMAIN:?Set your HTTPS hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+secrets:
+  gamecoach_runtime:
+    file: ./back-end/.secrets/server.json
+volumes:
+  gamecoach_data:
+  caddy_data:
+  caddy_config:
