@@ -58,7 +58,7 @@ window.GameCoachAI = (() => {
     if (!Object.hasOwn(profiles, mode)) throw new Error(tr("未知的执行模式。"));
     return { ...profiles[mode] };
   }
-  async function call(input, { mode = 'quick', signal, onDelta = () => {}, onRetry = () => {}, webSearch = false } = {}) {
+  async function call(input, { mode = 'quick', signal, onDelta = () => {}, onRetry = () => {}, webSearch = false, conversation } = {}) {
     if (!(typeof input === 'string' && input.trim()) && !(Array.isArray(input) && input.length)) throw new TypeError(tr("请输入文本或消息列表。"));
     if (typeof onDelta !== 'function') throw new TypeError(tr("onDelta 必须是函数。"));
     if (typeof onRetry !== 'function' || typeof webSearch !== 'boolean') throw new TypeError(tr("无效的调用选项。"));
@@ -68,6 +68,7 @@ window.GameCoachAI = (() => {
     const providerName = selectedProvider;
     const provider = providers.get(providerName);
     const requestInput = structuredClone(input);
+    const requestConversation = conversation ? structuredClone(conversation) : undefined;
     const controller = new AbortController();
     const started = now();
     let firstDeltaMs = null;
@@ -102,7 +103,8 @@ window.GameCoachAI = (() => {
       for (attempts = 1; attempts <= 3; attempts++) {
         try {
           return await provider.generate({ input: structuredClone(requestInput), ...settings,
-            webSearch, signal: controller.signal, onDelta: emit });
+            webSearch, signal: controller.signal, onDelta: emit,
+            ...(requestConversation ? { conversation: structuredClone(requestConversation) } : {}) });
         } catch (failure) {
           const error = failure && typeof failure === 'object' ? failure : new Error(tr("AI 调用失败。"));
           error.attempts = attempts;
@@ -125,8 +127,10 @@ window.GameCoachAI = (() => {
       if (typeof content !== 'string' || !content.trim()) throw new Error(tr("AI 返回了空回复。"));
       if (streamed && streamed !== content) throw new Error(tr("Provider 的流式内容与最终回复不一致。"));
       if (!streamed) emit(content);
-      return { content, mode, provider: providerName, model: settings.model,
+      return { content, mode, provider: providerName, model: output?.model || settings.model,
         isDemo: provider.isDemo === true, reasoningEffort: settings.reasoningEffort,
+        upstreamProvider: output?.upstream_provider,
+        usedMemories: output?.usedMemories,
         finishReason: typeof output?.finishReason === 'string' ? output.finishReason : undefined,
         attempts, sources: output?.sources || [], searchSuggestions: output?.searchSuggestions || '',
         searched: output?.searched === true, usage: output?.usage,
