@@ -238,6 +238,10 @@ async function send(override, options = {}) {
   try {
     const response = await window.GameCoachSkill.run(input, {
       context, mode, signal: request.controller.signal,
+      ...(window.GameCoachBackend?.isActive() ? { conversation: {
+        id: session.id, userId: request.userId, replyId: reply.id,
+        user: { name: store.current().name, profile: structuredClone(store.current().profile) },
+      } } : {}),
       onRetry({ attempt, maxAttempts }) {
         if (isCurrent()) {
           const tag = document.getElementById(reply.id)?.querySelector('.demo-tag');
@@ -261,6 +265,7 @@ async function send(override, options = {}) {
     if (!isCurrent()) return;
     reply.content = response.content;
     reply.provider = response.provider; reply.model = response.model; reply.isDemo = response.isDemo;
+    reply.upstreamProvider = response.upstreamProvider;
     reply.reasoningEffort = response.reasoningEffort; reply.status = 'complete'; reply.timings = response.timings; reply.finishReason = response.finishReason;
     reply.sources = response.sources; reply.searchSuggestions = response.searchSuggestions; reply.searched = response.searched;
     reply.attempts = response.attempts; reply.usage = response.usage;
@@ -305,6 +310,17 @@ function loadCurrentUser() {
   $('#question').value = ''; state.question = ''; $('#search').value = '';
   setMode(currentSession()?.messages.at(-1)?.mode || 'quick'); renderDraft(); resizeInput(); renderConversation(); renderAccount();
 }
+window.addEventListener('gamecoach:user-restored', () => {
+  const selected = state.sessionId, mode = state.mode;
+  cancelRequest(); loadCurrentUser();
+  if (store.current().sessions.some(item => item.id === selected)) {
+    state.sessionId = selected; setMode(mode); renderConversation();
+  }
+});
+$('#database-source').onchange = event => {
+  if (event.target.value === 'import') $('#import-user').click();
+  else { cancelRequest(); store.select(store.users()[0].id); loadCurrentUser(); }
+};
 function renderAccount() {
   const user = store.current();
   $('#account-open').textContent = $('#account-avatar').textContent = Array.from(user.name)[0];
@@ -365,6 +381,24 @@ $('#import-user').onchange = async e => {
     store.importBackup(backup); loadCurrentUser(); $('#account-status').textContent = tr("已导入为独立用户，原有用户未被覆盖。");
   } catch (error) { $('#account-status').textContent = error instanceof SyntaxError ? tr("无法解析 JSON，请选择有效的用户备份。") : error.message; }
   e.target.value = '';
+};
+$('#export-private-access').onclick = () => {
+  try {
+    const blob = new Blob([JSON.stringify(window.GameCoachBackend.recoveryFile(), null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob), link = element('a');
+    link.href = url; link.download = 'gamecoach-private-access.json'; document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) { $('#account-status').textContent = error.message; }
+};
+$('#import-private-access').onchange = async event => {
+  try {
+    const file = event.target.files[0]; if (!file) return;
+    if (file.size > 10000) throw new Error(tr('私有恢复文件无效，请检查文件和服务器地址。'));
+    cancelRequest();
+    await window.GameCoachBackend.restoreAccess(JSON.parse(await file.text()), $('#team-access-code').value);
+    $('#team-access-code').value = ''; loadCurrentUser();
+  } catch (error) { $('#account-status').textContent = error instanceof SyntaxError ? tr('私有恢复文件无效，请检查文件和服务器地址。') : error.message; }
+  finally { event.target.value = ''; $('#team-access-code').value = ''; }
 };
 store.setReporter(notice);
 loadCurrentUser();
