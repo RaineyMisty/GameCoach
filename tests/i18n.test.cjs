@@ -27,11 +27,11 @@ test('every roster entry has an official English name and title; switching prese
   }
   assert.equal(w.GameCoachGames.get('lol').champions.find(hero=>hero.id==='monkeyking')?.name ?? w.GameCoachGames.get('lol').champions.find(hero=>hero.id==='wukong')?.name,'Wukong');
   const draft=w.GameCoachDraft.empty('lolm'); draft.ally[0]='aatrox'; w.GCStore.saveDraft(draft);
-  const before=JSON.stringify(w.GCStore.exportUser());
+  const before=JSON.stringify(w.GCStore.exportUser().user);
   assert.equal(w.GameCoachDraft.roles[0].name,'Top');
   w.GameCoachI18n.setLocale('zh-CN'); assert.equal(w.GameCoachDraft.roles[0].name,'上单'); assert.match(w.GameCoachDraft.rules[0].name,/蓝方先选/);
   assert.equal(w.GameCoachGames.get('lolm').champions.find(hero=>hero.id==='aatrox').name,'亚托克斯');
-  assert.equal(JSON.stringify(w.GCStore.exportUser()),before);
+  assert.equal(JSON.stringify(w.GCStore.exportUser().user),before);
 });
 test('English Skill payload requests English, uses official names, and preserves user content', () => {
   const w=setup(), draft=w.GameCoachDraft.empty('lol'); draft.ally[0]='chogath'; draft.enemy[0]='malphite';
