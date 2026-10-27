@@ -1,0 +1,14 @@
+.git
+.venv
+node_modules
+users
+dist
+**/.secrets
+**/.env
+**/.env.*
+**/*.sqlite3
+**/*.sqlite3-*
+back-end/data
+**/__pycache__
+tests
+LOCAL_COMMIT_NOTES.md
