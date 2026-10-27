@@ -28,6 +28,7 @@ window.GCStore = (() => {
       id: safeId(message.id) ? message.id : undefined,
       status: ['complete', 'cancelled', 'error'].includes(message.status) ? message.status : message.status === 'pending' ? 'cancelled' : 'complete',
       provider: text(message.provider, 80), model: text(message.model, 120),
+      upstreamProvider: ['gemini', 'deepseek', 'openai', 'grok', 'claude'].includes(message.upstreamProvider) ? message.upstreamProvider : undefined,
       isDemo: message.isDemo !== false, reasoningEffort: text(message.reasoningEffort, 20),
       finishReason: text(message.finishReason, 40),
       inReplyTo: safeId(message.inReplyTo) ? message.inReplyTo : undefined,
@@ -113,7 +114,7 @@ window.GCStore = (() => {
     for (const user of snapshot.users) await writeJSON(dir, user.id + '.json', { format: 'gamecoach-user', version: 2, user });
     await writeJSON(dir, 'gamecoach-index.json', { format: 'gamecoach-index', version: 2, activeId: snapshot.activeId, users: snapshot.users.map(u => ({ id: u.id, name: u.name })) });
   }
-  function persist({ touch = true, syncFolder = true } = {}) {
+  function persist({ touch = true, syncFolder = true, notifyBackend = true } = {}) {
     if (touch) current().updatedAt = new Date().toISOString();
     let ok = false;
     if (browserAvailable) {
@@ -124,6 +125,9 @@ window.GCStore = (() => {
       const snapshot = JSON.parse(JSON.stringify(database));
       const dir = directory;
       writeQueue = writeQueue.then(() => writeDatabase(dir, snapshot)).then(() => notify(tr("已同步到本地用户文件夹。"))).catch(() => notify(tr("文件夹同步失败，浏览器记录仍保留。请重新连接目录或导出备份。")));
+    }
+    if (notifyBackend && window.dispatchEvent && typeof CustomEvent !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gamecoach:user-updated', { detail: { user: structuredClone(current()) } }));
     }
     return ok;
   }
@@ -143,9 +147,9 @@ window.GCStore = (() => {
     // heroes in place, without restoring an older per-game draft.
     return saveDraft({ ...current().draft, gameId: id });
   }
-  function select(id) {
+  function select(id, { notifyBackend = true } = {}) {
     if (!database.users.some(u => u.id === id)) throw new Error(tr("用户不存在。"));
-    database.activeId = id; persist({ touch: false });
+    database.activeId = id; persist({ touch: false, notifyBackend });
   }
   function mergeUsers(users) {
     const merged = new Map(database.users.map(u => [u.id, u]));
@@ -205,8 +209,16 @@ window.GCStore = (() => {
     while (database.users.some(u => u.name === user.name)) user.name = base.slice(0, 16) + tr("（导入 ") + suffix++ + '）';
     database.users.push(user); database.activeId = user.id; persist(); return user;
   }
+  function restoreSnapshot(raw, localId) {
+    const user = cleanUser({ ...raw, id: localId });
+    const at = database.users.findIndex(item => item.id === localId);
+    if (at < 0) throw new Error(tr("用户不存在。"));
+    database.users[at] = user;
+    persist({ touch: false, notifyBackend: false });
+    window.dispatchEvent(new Event('gamecoach:user-restored'));
+  }
   return {
-    uuid, current, cleanProfile, cleanDraft, create, select, saveDraft, selectGame, persist, connectFolder, importBackup,
+    uuid, current, cleanProfile, cleanDraft, create, select, saveDraft, selectGame, persist, connectFolder, importBackup, restoreSnapshot,
     users: () => database.users,
     folderConnected: () => !!directory,
     browserAvailable: () => browserAvailable,
