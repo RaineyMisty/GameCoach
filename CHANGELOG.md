@@ -2,7 +2,16 @@
 
 更新日期：2026-10-27。本文记录本轮 FastAPI + SQLite、多厂商 API、数据同步、安全与部署改动，并提供可用于后续提交的 commit 标题。
 
-**状态说明：本轮改动目前在本地工作区，尚未提交或部署。** 下文“待提交”条目是根据现有代码整理的变更分组，不是已经存在的 Git 提交；真实历史另列 hash。接口适配测试通过不代表五家厂商均已完成真实付费问答测试。
+**v0.0.1 发布范围：** 在 `fdd01c1` 基线上加入 Pages / 远程后端适配、精确 CORS、按后端隔离的恢复能力，以及树莓派服务模板。实际公网地址未填，树莓派端到端部署仍待验证。接口适配测试通过不代表五家厂商均已完成真实付费问答测试。
+
+## v0.0.1：远程后端连接
+
+- `Feat(connection): configure a fixed HTTPS backend for GitHub Pages`：新增 `frontend/config.js`，在 `frontend/index.html` 加载；`ai-core/backend.js` 使用固定后端 origin，拒绝不安全地址、凭证 URL 和重定向，Pages 未配置时给出明确提示。
+- `Feat(cors): allow explicitly configured frontend origins`：`back-end/main.py`、`secure_config.py`、`manage_config.py` 增加精确 CORS 来源及 `--frontend-origin` 参数，支持 Authorization / 访问码预检，不使用 Cookie 或通配来源。
+- `Fix(recovery): bind sessions and recovery files to the API origin`：会话按后端分区，保留原同源会话迁移，version 2 恢复文件可在指向同一后端的不同页面恢复；不向新后端自动发送旧身份。
+- `Feat(deployment): add a systemd template for the Raspberry Pi backend`：新增 `deploy/gamecoach.service.example` 并纳入部署包；仅监听本机，模板需替换实际用户与路径后安装。
+- `Doc(deployment): document Funnel setup and Pages connection`：更新部署步骤、README 与本文；树莓派尚未生成公网地址，配置与端到端验证需继续完成。
+- 新增 `back-end/test_cors.py`，扩充 `tests/backend.test.cjs`、`back-end/test_deployment.py`；前者覆盖预检、认证错误、来源拒绝，后者验证跨站请求、凭证隔离及恢复兼容。
 
 ## 1. Commit 命名约定
 
@@ -16,9 +25,9 @@
 
 “改代码”按目的区分：新增功能用 `Feat`；修正原有行为用 `Fix`；仅修改文档用 `Doc`。同一个提交尽量处理一个完整问题，相关验证可以随代码一起提交。历史提交保留原名，不为统一格式改写既有 Git 历史。
 
-## 2. 本轮待提交变更
+## 2. 上一阶段功能记录（已提交）
 
-下面标题可用于拆分提交，编号只表示阅读顺序。文件可能同时涉及几项功能，实际提交需检查暂存内容；本文没有执行 commit 或 push。
+下面按功能整理上一阶段改动；标题用于说明范围，不表示与实际 Git 提交一一对应。实际提交记录以 `git log` 为准。
 
 ### Feat(backend): 新增 FastAPI 会话校验与 SQLite 聊天存储
 
@@ -99,6 +108,7 @@
 GameCoach/
 ├── frontend/                           # [浏览器] 页面、交互与本地缓存
 │   ├── index.html                      # 修改：Default / Import、通用 API 表单、恢复入口
+│   ├── config.js                       # 本次新增：公开 HTTPS 后端 origin，不能写密钥
 │   ├── styles.css                      # 页面与弹窗样式
 │   ├── app.js                          # 修改：聊天交互、数据切换、回复恢复与备份操作
 │   ├── ai-settings.js                  # 修改：厂商选择、Key 提交、连接状态与错误展示
@@ -113,7 +123,7 @@ GameCoach/
 │   └── vendor/                         # 固定版本 Markdown / HTML 清理库及许可
 ├── ai-core/                            # [浏览器] 模型执行调度与后端客户端
 │   ├── index.js                        # 修改：模式、超时、取消、统一结果与对话传递
-│   ├── backend.js                      # 新增：同源 /api/、会话、同步、恢复与聊天请求
+│   ├── backend.js                      # 固定后端 /api/、按后端隔离会话、同步、恢复与聊天
 │   ├── gemini.js                       # 旧版浏览器直连适配；主页面不再加载
 │   └── README.md                       # 模块边界与使用说明
 ├── skill/                              # [浏览器] 游戏问题与提示词组装
@@ -145,6 +155,7 @@ GameCoach/
 │   ├── test_security.py                # 新增：[开发] 隔离、加密、恢复和传输约束
 │   ├── test_training_memory.py         # 新增：[开发] 服务器记忆选择
 │   ├── test_deployment.py              # 新增：[开发] 配置与打包秘密排除
+│   ├── test_cors.py                    # 本次新增：[开发] 精确来源、预检与认证响应
 │   ├── data/                           # [服务器][私有] 运行时生成，Git 忽略
 │   │   └── gamecoach.sqlite3            # 用户、会话、对话、消息、凭证与 memory 快照
 │   │                                   # 运行时还可能存在 -wal / -shm 文件
@@ -164,6 +175,8 @@ GameCoach/
 │   └── *.html / *.browser.js            # 浏览器可打开的渲染与来源验证页
 ├── scripts/                            # [开发 / 管理]
 │   └── package_deploy.py               # 新增：生成不含秘密 / 数据的代码部署包
+├── deploy/                             # [服务器 / 管理] 安装前需配置的运维模板
+│   └── gamecoach.service.example        # 本次新增：Python 后端 systemd 模板
 ├── users/                              # [用户电脑][私有] 可自行创建的本地 JSON 备份目录
 ├── dist/                               # [开发] 生成物，Git 忽略
 │   └── gamecoach-deploy.zip             # 可分享代码包，不包含数据库和私有配置
@@ -202,7 +215,7 @@ GameCoach/
 ```text
 浏览器（用户电脑）
   frontend → skill（组装问题、阵容与本地资料）→ ai-core/backend.js
-                                      │ 同源 HTTPS /api/
+                                      │ 配置的 HTTPS 后端 /api/
                                       ▼
 服务器（家中树莓派或其他主机）
   HTTPS 入口 → FastAPI 会话与归属校验
@@ -214,11 +227,11 @@ GameCoach/
                         浏览器显示 ← 统一结果 ← SQLite 事务保存 ← 完整回复
 ```
 
-当前为完整回复保存后一次返回，未实现后端流式 SSE。静态 demo 模式不经过真实模型。GitHub Pages 分离前端属于待接入路径，不能把上图的“同源 HTTPS”直接替换成两个域名而不修改代码。
+当前为完整回复保存后一次返回，未实现后端流式 SSE。静态 demo 模式不经过真实模型。Pages 分离部署的代码已加入，需填写实际后端地址、配置 CORS、发布并完成实机验证。
 
 ## 4. 真实 Git 提交历史
 
-以下按 `git log` 从新到旧摘录本仓库截至 `696bf40` 的已有提交，保留原始标题。它们主要是本轮后端与部署改动之前的工作，不代表上述待提交内容已进入 Git。
+以下保留第一次整理时截至 `696bf40` 的历史快照与原始标题。此后上一阶段功能已提交，目前基线为 `fdd01c1`；完整最新历史请查看 `git log`。
 
 | 日期 | Commit | 原始标题 |
 | --- | --- | --- |
@@ -243,7 +256,7 @@ GameCoach/
 | 2026-10-14 | `e8928e4` | Add license |
 | 2026-10-14 | `331395b` | Initial commit |
 
-后续提交后，可将第 2 节已落地条目补上真实 hash / 日期，并更新此处的历史截止点。
+v0.0.1 的远程连接改动列在本文开头，具体提交 hash 以版本标签与 `git log` 为准。
 
 ## 5. 验证与待完成事项
 
@@ -251,7 +264,7 @@ GameCoach/
 - 本轮文档更新核对了实际目录、代码配置和 Git 历史，不宣称树莓派 / Docker 已经上线成功。
 - DeepSeek 此前的无 Key 网络请求收到 HTTP 401，只证明当时能够访问服务；未证明真实问答或额度可用。
 - 仍需在家中树莓派完成：真实生成、刷新与恢复、跨厂商历史与 memory、重启后数据库可读、备份恢复演练。
-- GitHub Pages 目前只支持静态 / demo。远程 API 地址配置、后端 CORS 白名单、跨站部署的连接策略以及按后端地址隔离身份 / 恢复凭证尚未完成。
+- GitHub Pages 连接远程 API 的代码已实现，但实际地址、Funnel 开通、源码发布和端到端测试仍待完成；未配置时保留静态 / demo。
 - 没有密码登录、管理后台、自动备份、自动更新或数据库版本迁移框架；当前方案面向小范围受邀测试，未完成负载与高可用验证。
 
 部署步骤、边界和验收以 [DEPLOYMENT.md](./DEPLOYMENT.md) 为操作入口。

@@ -29,7 +29,9 @@ SSE 处理任意字节分片、UTF-8、CRLF / LF / CR、注释、多行 data。�
 
 API Key / HTTP 错误不回显原始服务器文本，避免上游信息包含 Key。浏览器直连 Gemini 的凭证仅用于用户自己的页面。刷新恢复 demo；用户资料和聊天保留。测试模拟官方响应，不声称无 Key 时完成真实推理验证。
 
-可选 `backend.js` provider 调用同源 `/api`，服务端密钥只由 Python 读取。调用选项 `conversation: { id, userId, user: { name, profile } }` 仅供适配器定位本地用户和对话，服务端身份始终来自 Bearer 令牌。Skill 只准备本轮消息，历史由 SQLite 提供。后端模式使用 JSON 完整回复，不启用流式和联网搜索；返回实际服务端模型名。安装及接口见 [back-end/README.md](../back-end/README.md)。
+`backend.js` provider 调用固定后端的 `/api`，服务端密钥只由 Python 读取。在它之前加载的 `frontend/config.js` 设置公开 `apiBaseUrl`：留空使用同源；Pages 使用明确的 HTTPS origin，不含路径、查询参数或凭证。不从页面 URL 参数读取服务器地址，拒绝跟随重定向；远程请求省略 Cookie，后端需配置 CORS。调用选项 `conversation: { id, userId, user: { name, profile } }` 仅供适配器定位本地用户和对话，服务端身份始终来自 Bearer 令牌。Skill 只准备本轮消息，历史由 SQLite 提供。后端模式使用 JSON 完整回复，不启用流式和联网搜索；返回实际服务端模型名。安装及接口见 [back-end/README.md](../back-end/README.md)。
+
+浏览器会话存储键包含后端 origin；旧同源会话只在同源模式迁移，不自动带到远程后端。私有恢复文件 version 2 记录实际 API origin，可以在指向同一后端的不同页面中手动恢复；version 1 只在原同源网站接受。更换后端地址需要单独处理身份迁移，不能将恢复文件中的地址改成任意新站来转发凭证。
 
 `GameCoachBackend.testConnection(provider)` 和 `activate(provider)` 接受 `gemini` / `deepseek` / `openai` / `grok` / `claude`，省略时使用服务端默认。聊天始终调用 `/api/chat`；统一输出正文、结束原因、用量和模型名，`upstreamProvider` 标识服务端选择的模型厂商，随前端历史保存。各厂商的协议映射集中在 `back-end/providers.py`，不会把服务端 Key 放进前端。
 

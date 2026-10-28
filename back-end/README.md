@@ -17,6 +17,12 @@ FastAPI + SQLite，统一接入 Gemini、DeepSeek、OpenAI（ChatGPT API）、xA
 
 **安全配置、恢复、部署包与团队测试操作见 [DEPLOYMENT.md](../DEPLOYMENT.md)。**
 
+## GitHub Pages / 树莓派
+
+Pages 前端在 `frontend/config.js` 设置 `apiBaseUrl: 'https://你的树莓派主机名'`。服务器设置 `GAMECOACH_CORS_ORIGINS=https://raineymisty.github.io`；origin 不带 `/GameCoach/` 路径或末尾 `/`，多个来源用逗号分隔，不允许通配符。默认留空时不开放跨域读取；开发环境可显式允许 localhost HTTP，生产仅允许 HTTPS 来源。
+
+首次生成私有配置可增加 `--frontend-origin https://raineymisty.github.io`；已有配置只更新 CORS / Host 字段，保留原主密钥和 Key 并重启服务。CORS 不替代会话校验，浏览器仍使用 Bearer 令牌，不发送 Cookie。没有自有域名时可按部署指南使用 Tailscale Funnel；仅监听 127.0.0.1:8000 并信任本机代理。`deploy/gamecoach.service.example` 提供验证后的开机运行模板。
+
 ## 统一接口
 
 | 方法 | 路径 | 用途 |

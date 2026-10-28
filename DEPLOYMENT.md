@@ -9,9 +9,10 @@
 | 本机 Python 同时提供页面和 API | 已有代码，可进行本机验证 | Python 环境、可访问厂商的网络、有效 Key |
 | 树莓派 + 临时 HTTPS 隧道，同时提供页面和 API | 本文提供测试步骤，实机待验证 | 64 位系统、Python、cloudflared；无需购买域名 |
 | Linux / 树莓派 + Docker Compose + Caddy | 已有配置，镜像构建与实机待验证 | Docker Compose、可用域名、公网入口与证书条件 |
-| GitHub Pages 页面 + 树莓派远程 API | **尚未完成连接适配** | 远程 API 地址、CORS、身份与恢复地址隔离等代码修改 |
+| GitHub Pages 页面 + 树莓派远程 API | 已实现连接适配，实际地址与实机验证待完成 | `frontend/config.js` 后端地址与服务器 CORS 配置；见 3B / 3C |
+| 树莓派 + Tailscale Funnel | 本文提供推荐测试流程，实机待验证 | Tailscale 账户与 `*.ts.net` 入口；无需自有域名 |
 
-**只有 `github.io` 地址也能测试，不需要先买域名。** 当前先从树莓派的 HTTPS 隧道地址打开整个网站。GitHub Pages 可继续作为静态演示入口；它不能运行 Python 或 SQLite。不要把 `raineymisty.github.io` 填成树莓派的服务器域名，也不能为它配置自己的 DNS 记录。[GitHub Pages 官方说明](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
+**只有 `github.io` 地址也能测试，不需要先买域名。** 先从树莓派 HTTPS 入口验证后端，再配置 Pages 的远程连接。Pages 本身不能运行 Python 或 SQLite。不要把 `raineymisty.github.io` 填成树莓派的服务器域名，也不能为它配置自己的 DNS 记录。[GitHub Pages 官方说明](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
 
 ### 哪些东西部署到哪里
 
@@ -19,7 +20,7 @@
 用户电脑 / 浏览器
   frontend/ + ai-core/ + skill/ + memory/ + resources/
   页面交互、公开资料、用户本地缓存、导入 / 导出
-                     │ 同源 HTTPS /api/
+                     │ HTTPS /api/（同源或配置的树莓派地址）
                      ▼
 家中树莓派 / Linux 服务器
   HTTPS 入口：临时隧道，或有域名时使用 Caddy
@@ -42,7 +43,7 @@ Python 当前只映射上述公开目录为静态资源，不提供整个仓库�
 - **Local database / Default**：使用默认本地用户；浏览器保留一份缓存和待同步修改。
 - **Local database / Import**：导入现有 GameCoach 用户 JSON，包含资料、历史和 training memory，不含 API Key；保留“导出当前用户”和文件夹备份。
 - **API 连接**：选择 Gemini、DeepSeek、OpenAI、Grok 或 Claude，输入自己的 Key，或者留空使用当前用户已保存的 Key / 服务器默认 Key。团队部署需填写管理员提供的访问码。
-- 模型 HTTP 请求、厂商域名解析、密钥使用和 training memory 选择都在 Python 后端。页面只向同源 `/api/` 请求；不再从网页直连 Gemini。CSP 限制页面联网目标为自己的服务器。
+- 模型 HTTP 请求、厂商域名解析、密钥使用和 training memory 选择都在 Python 后端。页面只向固定后端地址的 `/api/` 请求；不从网页直连厂商。Python 提供页面时 CSP 限制同源连接；Pages 不自动继承 Python 的安全响应头。
 - 同一用户的聊天和 memory 不按厂商分库。切换 API 仍读同一 SQLite 历史和记忆。training memory 是按需加入上下文的经验，不是模型微调。
 - 首次连接会将当前浏览器用户同步到后端，并导入完成的真实问答；演示、失败和停止的回复不会作为已完成历史导入。之后原有对话不会被快照同步重复覆盖。
 
@@ -191,23 +192,116 @@ export GAMECOACH_CONFIG_FILE="$PWD/back-end/.secrets/server.json"
 
 隧道重建后，应在服务器本地编辑已有私有配置中的 `GAMECOACH_ALLOWED_HOSTS` 为新主机名，再重启 Python 进程；**保留原主密钥和其他配置，不要通过删除配置重新生成来换域名**。配置读取有缓存，修改文件后需要重启进程。
 
-地址变化也会改变浏览器网站来源：本地缓存 / 会话不会自动跨地址共享，当前私有恢复文件要求地址相同，不能直接导入到新地址。旧服务器数据仍在数据库中；更换入口前导出普通用户备份，并优先在确定的稳定入口进行长期测试。普通 JSON 导入会创建独立用户，不能找回旧身份或旧 Key。
+临时后端地址变化后，新版私有恢复文件也会因为后端地址不匹配而拒绝导入，浏览器不会自动转移凭证。旧服务器数据仍在数据库中；更换入口前导出普通用户备份，并优先在确定的稳定入口进行长期测试。普通 JSON 导入会创建独立用户，不能找回旧身份或旧 Key。Pages 使用同一个稳定后端、仅页面来源变化时，可以通过新版恢复文件手动恢复。
 
 这套手动步骤没有自动开机启动；关闭终端、SSH 断开或树莓派重启可能使服务停止。首次验证完成后，再为 Python 和选定的长期隧道配置服务管理与自动启动；不要把临时 URL 当成永久团队入口。
 
-## 3B. GitHub Pages 与远程 API 的剩余工作
+## 3B. GitHub Pages 连接远程 API
 
-`https://raineymisty.github.io/GameCoach/` 可以继续展示静态 demo。当前 `ai-core/backend.js` 请求的是同源 `/api/`；从 GitHub Pages 打开，它不会自动找到家里的树莓派。仅把源码推到 GitHub、填一把 Key 或在服务器写域名，都不能完成这一步。
+当前代码已支持以下配置，但没有预填一个不存在的公网地址。取得树莓派 HTTPS 地址后，在准备发布到 Pages 的源码中修改 `frontend/config.js`：
 
-分离部署前还需要实现并验证：
+```js
+window.GameCoachConfig = Object.freeze({ apiBaseUrl: 'https://YOUR-PI.YOUR-TAILNET.ts.net' });
+```
 
-- 前端明确配置一个受信任的 HTTPS 后端地址；任何公开配置都只能包含地址等非秘密值。
-- 后端 CORS 仅放行实际页面 origin，例如 `https://raineymisty.github.io`，不带 `/GameCoach/` 路径；正确处理预检、Authorization 与访问码请求头。
-- 浏览器会话和私有恢复文件按实际后端地址隔离，避免换服务器后把原凭证发往另一台服务器。
-- 核对分离部署时页面 CSP / 连接限制；由 Python 提供的安全响应头不会自动应用到 GitHub Pages。
-- 使用 HTTPS，验证连接、用户隔离、刷新、恢复、网络失败和跨厂商同步；API 与 SQLite 不上传到 Pages。
+将占位地址换成真实地址，不加 `/api`、`/frontend`、查询参数、用户名或密钥。该文件是公开配置，只能写服务器地址；页面加载后固定使用该地址，不从 URL 参数或用户输入动态选择服务器。HTTPS 页面不允许连接 HTTP 后端。未填写地址的 Pages 页面仍可 demo，但连接 API 会提示先配置。
 
-**以上为待实现工作清单，当前文档更新没有实现这些功能。** 当前队友测试请访问树莓派提供整个页面的 HTTPS 入口。
+服务器私有配置加入字符串字段 `GAMECOACH_CORS_ORIGINS`，值为 `https://raineymisty.github.io`，不带 `/GameCoach/` 或末尾 `/`。新建配置可通过 `manage_config.py --frontend-origin` 填写；已有配置在树莓派本地编辑此字段，保留原主密钥和 Key，然后重启 Python。
+
+允许多个页面来源时用逗号分隔完整 origin，不使用 `*` 或通配子域名。后端仅放行 GET / POST / PUT / DELETE，以及 Authorization、Content-Type、X-GameCoach-Access 请求头。请求不携带 Cookie，依然要求 Bearer 会话和相应访问码；**CORS 不能替代身份认证**。配置依据 [FastAPI CORS 官方说明](https://fastapi.tiangolo.com/tutorial/cors/)。
+
+用户会话按后端地址隔离，切换服务器不会自动发送旧令牌。新版私有恢复文件为 version 2，记录后端 origin；同一后端可以在 Pi 页面和 Pages 页面之间手动导入恢复。旧版 version 1 文件只接受原来的同源网站，请先在原网站使用新版页面重新导出，再迁移至 Pages。
+
+`apiBaseUrl: ''` 保留同源模式，适用于从 Python 网站直接打开。Python 的 CSP 仍为同源连接；不要在本机 Python 网站上配置另一个远程地址来代替 Pages 验证。Pages 不自动得到 Python 的 CSP / HSTS 响应头，前端连接代码仍验证固定 HTTPS 目标并拒绝跟随重定向。
+
+将前端修改提交并发布到 Pages 后，再进行第 5 节验收。Key、主密钥和数据库始终不进入 Pages。代码完成不等于网站已经发布或真实问答已经验证。
+
+## 3C. 推荐：Tailscale Funnel + GitHub Pages（无需自有域名）
+
+这一路径使用 Python 直接运行，不需要同时启动 Compose / Caddy。它提供 `*.ts.net` HTTPS 地址，外部队友不需要安装 Tailscale。Funnel 目前为 Beta，有带宽限制，不能当作已验证的高可用生产服务。设备名 / tailnet 域名保持一致有助于保持入口地址；更名或移除设备可能改变入口。[Funnel 官方说明](https://tailscale.com/docs/features/tailscale-funnel)
+
+### 1. 安装 Tailscale 并登录
+
+先按 3A 的 A 步准备最新代码包和 Python 环境，确保本机 8000 没有旧的未保护开发服务。以下命令在树莓派运行；已安装 Tailscale 时跳过安装。
+
+```sh
+curl -fsSL https://tailscale.com/install.sh -o ~/tailscale-install.sh
+sudo sh ~/tailscale-install.sh
+sudo systemctl enable --now tailscaled
+sudo tailscale up
+```
+
+根据终端显示的登录链接在浏览器完成授权。安装来源为 [Tailscale Linux 官方下载页](https://tailscale.com/download/linux)。不要将设备登录链接或认证 Key 发给队友。
+
+### 2. 创建 HTTPS 入口
+
+```sh
+sudo tailscale funnel --bg --https=443 http://127.0.0.1:8000
+sudo tailscale funnel status
+```
+
+如提示开启 MagicDNS、HTTPS 或 Funnel 权限，按官方页面提示完成账户授权，再运行命令。需要 tailnet 管理者有权限启用相关设置；不要用只允许 tailnet 内访问的 Serve 代替公网 Funnel。
+
+记录输出的真实地址，例如 `https://gamecoach-pi.your-tailnet.ts.net`。此时 Python 尚未启动，入口暂时无法返回应用是正常的。`--bg` 使 Funnel 后台配置持久化，但它不负责启动 Python；Python 仍需下一步启动，后续可配置 systemd。[Funnel CLI](https://tailscale.com/docs/reference/tailscale-cli/funnel)
+
+### 3. 配置服务器与 Pages 来源
+
+在树莓派终端将变量替换为刚刚获得的主机名：
+
+```sh
+cd ~/GameCoach
+PI_API_HOST=gamecoach-pi.your-tailnet.ts.net
+.venv/bin/python back-end/manage_config.py --provider deepseek --domain "$PI_API_HOST" --frontend-origin https://raineymisty.github.io
+chmod 600 back-end/.secrets/server.json
+```
+
+`deepseek` 是示例，可改为 `gemini`、`openai`、`grok`、`claude`。Key 在树莓派隐藏输入。已有 `server.json` 时不要删除重建；用本地编辑器只更新 `GAMECOACH_ALLOWED_HOSTS`（实际 Pi 主机名）和 `GAMECOACH_CORS_ORIGINS`（Pages origin）两个字段，保留所有原 Key 和加密主密钥。直接 Python 部署的文件归当前服务用户所有，不使用 Compose 里的 UID 10001 所有权步骤。
+
+### 4. 启动并检查后端
+
+```sh
+mkdir -p back-end/data
+export GAMECOACH_CONFIG_FILE="$PWD/back-end/.secrets/server.json"
+.venv/bin/python -m uvicorn main:app --app-dir back-end --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+```
+
+保持终端运行，在另一终端检查（重新设置同一个 `PI_API_HOST` 变量）：
+
+```sh
+PI_API_HOST=gamecoach-pi.your-tailnet.ts.net
+curl -f "https://$PI_API_HOST/api/health"
+curl -i -X OPTIONS "https://$PI_API_HOST/api/sessions" \
+  -H 'Origin: https://raineymisty.github.io' \
+  -H 'Access-Control-Request-Method: POST' \
+  -H 'Access-Control-Request-Headers: authorization,content-type,x-gamecoach-access'
+```
+
+健康接口应返回 JSON；预检应返回 200 和 `access-control-allow-origin: https://raineymisty.github.io`。健康检查不调用模型。首次 HTTPS 证书 / DNS 就绪可能需要时间；若返回 `HTTPS_REQUIRED`，核对 Tailscale 版本和代理头，不关闭生产 HTTPS 校验。
+
+先从 Pi 的 HTTPS 网站使用访问码连接模型并完成一轮真实问答。确认后按 3B 修改电脑源码中的 `frontend/config.js` 并发布到原 Pages 地址；从 Pages 再测连接、历史、memory 和恢复。访问码仅在树莓派私有配置中查看，不提交到 Git。
+
+### 5. 验证后配置 Python 开机运行
+
+仓库和部署包包含 `deploy/gamecoach.service.example`。在树莓派复制模板，替换其中所有 `YOUR_PI_USER` 和项目绝对路径为实际值；服务用户应为拥有配置及数据的普通用户，不能保留占位符。先确保 `back-end/data` 存在，并确认模板中的 Python 路径、配置路径与数据目录正确。
+
+```sh
+cp deploy/gamecoach.service.example ~/gamecoach.service
+nano ~/gamecoach.service
+sudo install -m 644 ~/gamecoach.service /etc/systemd/system/gamecoach.service
+sudo systemctl daemon-reload
+```
+
+停止第 4 步手动启动的 Uvicorn，再启用服务，避免两个进程争用端口：
+
+```sh
+sudo systemctl enable --now gamecoach
+sudo systemctl status gamecoach --no-pager
+sudo journalctl -u gamecoach -n 50 --no-pager
+```
+
+该模板限制文件系统写入，仅允许项目的 `back-end/data`；若另设数据库位置，需同时调整 `ReadWritePaths` 与配置。更改私有配置后运行 `sudo systemctl restart gamecoach`。重启树莓派后从另一设备验证 Pages、Funnel 和历史持久化。
+
+关闭此 Funnel 可使用 `sudo tailscale funnel --https=443 off`，仅在确实要停止公开访问时执行。不要同时让 Cloudflare 和 Funnel 共用不一致的 Host 配置；若改用 3A 的临时 Cloudflare 地址，应同步更新前端 origin、后端允许主机名，并处理旧身份的地址绑定。
 
 ## 4. 给队友什么
 

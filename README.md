@@ -26,14 +26,14 @@ The AI program assists players learning the rules, understanding how to play, di
 
 The static website supports demo use. For real API conversations, start the Python backend or use your deployed HTTPS site. Local database Default / Import selects user data; the separate API connection form accepts the supported provider and Key. See [setup and secure team deployment](./DEPLOYMENT.md).
 
-See [CHANGELOG.md](./CHANGELOG.md) for the current changes, suggested commit messages, actual Git history, and a detailed project tree marking browser and server responsibilities. The deployment guide also identifies the remaining work for a GitHub Pages frontend with a remote API.
+See [CHANGELOG.md](./CHANGELOG.md) for changes, Git history, and browser/server responsibilities. For GitHub Pages with a Raspberry Pi backend, configure the public API origin in `frontend/config.js` and the server's CORS allowlist. The [deployment guide](./DEPLOYMENT.md) includes Tailscale Funnel setup without a custom domain; the actual public address and end-to-end deployment still need to be verified.
 
 ## Architecture and Privacy
 
 GameCoach is built with **HTML, CSS, and JavaScript** and supports static use plus an optional **FastAPI + SQLite** local backend. The frontend handles interaction and local data; **Skill** prepares team compositions, memories and game references; **AI Core** handles model requests. One backend chat API supports Gemini, DeepSeek, OpenAI (ChatGPT API), xAI (Grok) and Anthropic (Claude). It validates sessions, loads SQLite history, calls the selected provider, saves the profile and completed exchange, then returns a normalized answer. Switching providers preserves the conversation. See [backend setup and API](./back-end/README.md).
 
 ```text
-Browser → same-origin Python API → model provider
+Browser → configured HTTPS Python API → model provider
                      ↓
            encrypted SQLite user history + training memory
 ```

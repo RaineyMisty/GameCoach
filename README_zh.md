@@ -50,7 +50,7 @@ GitHub Pages 保持 **Deploy from a branch → main → /(root)**。根目录的
 
 从 Python 服务或自己的 HTTPS 部署网站打开页面。Local database 的 Default / Import 只选择用户数据；API 连接表单支持 Gemini、DeepSeek、OpenAI、Grok 和 Claude。填入自己的 Key，或留空使用已保存 / 服务器默认 Key。团队部署填写管理员提供的访问码。
 
-浏览器只访问同源后端，不直接连接模型厂商。HTTP、厂商 DNS、用户 Key、SQLite 历史与 training memory 选择都由后端处理。切换厂商继续使用同一用户的数据。Key 与用户资料敏感字段加密保存在后端，普通用户 JSON 备份不包含 Key；导出私有恢复文件可以恢复服务器身份，该文件需要保密。
+浏览器只访问配置的后端，不直接连接模型厂商。`frontend/config.js` 的 `apiBaseUrl` 留空时使用同源 API；Pages 部署时填树莓派 HTTPS origin，并在后端配置精确 CORS 来源。HTTP、厂商 DNS、用户 Key、SQLite 历史与 training memory 选择都由后端处理。切换厂商继续使用同一用户的数据。Key 与用户资料敏感字段加密保存在后端，普通用户 JSON 备份不包含 Key；私有恢复文件按后端地址绑定并需要保密。
 
 本机启动、安全配置文件生成、部署包、队友测试以及传输 / 存储安全边界见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
