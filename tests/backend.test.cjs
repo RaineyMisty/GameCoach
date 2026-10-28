@@ -4,25 +4,26 @@ const fs = require('node:fs'), path = require('node:path'), vm = require('node:v
 const crypto = require('node:crypto').webcrypto;
 const root = path.join(__dirname, '..');
 
-function setup({ saved = new Map(), blocked = false } = {}) {
+function setup({ saved = new Map(), blocked = false, apiBaseUrl = '', pageOrigin = 'http://localhost' } = {}) {
   const requests = [];
   let stateVersion = 0;
   let user = { id: 'local-user-1', name: '玩家', profile: { rank: 'Gold' } };
   let chatStatus = 200;
   const ctx = {
-    window: {}, structuredClone, setTimeout, clearTimeout, AbortController, DOMException, performance, crypto, URL,
+    window: { location: new URL(pageOrigin), GameCoachConfig: { apiBaseUrl } },
+    structuredClone, setTimeout, clearTimeout, AbortController, DOMException, performance, crypto, URL,
     sessionStorage: {
       getItem: key => { if (blocked) throw Error('blocked'); return saved.get(key); },
       setItem: (key, value) => { if (blocked) throw Error('blocked'); saved.set(key, value); },
       removeItem: key => saved.delete(key),
     },
     async fetch(url, options) {
-      const endpoint = url.split('?')[0];
+      const endpoint = new URL(url, pageOrigin).pathname;
       requests.push({ url, ...options, body: options.body ? JSON.parse(options.body) : undefined });
       const data = endpoint === '/api/user-state' ? (options.method === 'PUT' ? {version: ++stateVersion} : {version: stateVersion, user: null})
         : endpoint === '/api/providers' ? {default_provider: 'gemini'}
         : endpoint === '/api/health' ? { model_configured: true }
-        : endpoint === '/api/sessions' ? { token: 'token-' + user.id, expires_at: Date.now() / 1000 + 3600, recovery: 'recovery-' + user.id }
+        : ['/api/sessions', '/api/sessions/restore'].includes(endpoint) ? { token: 'token-' + user.id, expires_at: Date.now() / 1000 + 3600, recovery: 'recovery-' + user.id }
         : endpoint === '/api/conversations' ? { conversation_id: 'remote-chat-' + requests.length }
         : { content: 'answer', model: 'actual-server-model', finishReason: 'stop',
           upstream_provider: options.body ? JSON.parse(options.body).provider || 'gemini' : undefined };
@@ -37,7 +38,8 @@ function setup({ saved = new Map(), blocked = false } = {}) {
     'skill/output/index.js', 'skill/index.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename: file });
   }
-  ctx.window.GCStore = { current: () => user };
+  ctx.window.GCStore = { current: () => user, users: () => [user], select() {},
+    restoreSnapshot: value => { user = value; } };
   ctx.window.GameCoachGemini = { disconnect: () => ctx.window.GameCoachAI.configure({ provider: 'demo' }) };
   vm.runInContext(fs.readFileSync(path.join(root, 'ai-core/backend.js'), 'utf8'), ctx);
   const conversation = id => ({ id, userId: user.id, user: { name: user.name, profile: user.profile } });
@@ -170,4 +172,78 @@ test('cancellation reaches the API request and ignores late returned text', asyn
   await assert.rejects(response, { name: 'AbortError' });
   assert.equal(signal.aborted, true); finish(); await new Promise(resolve => setTimeout(resolve, 0));
   assert.deepEqual(deltas, []);
+});
+
+test('Pages sends all requests only to the configured HTTPS backend without redirects or cookies', async () => {
+  const w = setup({ apiBaseUrl: 'https://coach.example.com', pageOrigin: 'https://team.github.io' });
+  await w.GameCoachBackend.connect({provider:'deepseek',apiKey:'private-key',accessCode:'team-access'});
+  w.GameCoachBackend.activate('deepseek');
+  await w.GameCoachSkill.run('hi', { conversation: w.conversation('remote-chat') });
+  assert.ok(w.requests.every(item => item.url.startsWith('https://coach.example.com/api/')));
+  assert.ok(w.requests.every(item => item.credentials === 'omit' && item.redirect === 'error' && item.referrerPolicy === 'no-referrer'));
+  assert.ok(w.requests.some(item => item.url === 'https://coach.example.com/api/chat'));
+  // Configuration is captured at load; changing it later cannot redirect an existing token.
+  w.ctx.window.GameCoachConfig.apiBaseUrl = 'https://other.example.com';
+  await w.GameCoachBackend.testConnection('deepseek');
+  assert.ok(w.requests.every(item => item.url.startsWith('https://coach.example.com/api/')));
+});
+
+test('unsafe backend origins are rejected before transmitting a key or access code', async () => {
+  for (const apiBaseUrl of ['http://remote.example.com', 'https://user:password@coach.example.com',
+    'https://coach.example.com/api', 'https://coach.example.com?key=private', 'https://coach.example.com#api',
+    '//coach.example.com', 'javascript:alert(1)', 123, 'http://localhost:8000']) {
+    const w = setup({apiBaseUrl, pageOrigin:'https://team.github.io'});
+    await assert.rejects(w.GameCoachBackend.connect({provider:'deepseek',apiKey:'private-key',accessCode:'private-code'}), /HTTPS/);
+    assert.equal(w.requests.length, 0);
+  }
+});
+
+test('sessions are scoped to the API origin and legacy tokens never move to a remote server', async () => {
+  const saved = new Map([['gamecoach-backend-session:local-user-1', JSON.stringify({token:'legacy-token', conversations:{}})]]);
+  const first = setup({saved, apiBaseUrl:'https://a.example.com', pageOrigin:'https://team.github.io'});
+  await first.GameCoachBackend.connect({provider:'deepseek'});
+  assert.ok(first.requests.every(item => item.headers.Authorization !== 'Bearer legacy-token'));
+  const second = setup({saved, apiBaseUrl:'https://b.example.com', pageOrigin:'https://team.github.io'});
+  await second.GameCoachBackend.connect({provider:'deepseek'});
+  assert.ok(second.requests.some(item => item.url === 'https://b.example.com/api/sessions'));
+  assert.equal([...saved.keys()].filter(key => key.includes('v2:')).length, 2);
+  const refreshed = setup({saved, apiBaseUrl:'https://a.example.com', pageOrigin:'https://team.github.io'});
+  await refreshed.GameCoachBackend.connect({provider:'deepseek'});
+  assert.ok(!refreshed.requests.some(item => item.url === 'https://a.example.com/api/sessions'));
+});
+
+test('same-origin clients migrate existing session storage without creating a new server user', async () => {
+  const saved = new Map([['gamecoach-backend-session:local-user-1', JSON.stringify({token:'legacy-token',
+    expires_at:Date.now()/1000+1000, conversations:{}})]]);
+  const w = setup({saved});
+  await w.GameCoachBackend.testConnection();
+  assert.equal(w.requests[0].headers.Authorization, 'Bearer legacy-token');
+  assert.ok(!saved.has('gamecoach-backend-session:local-user-1'));
+  assert.equal(JSON.parse([...saved.values()][0]).server, 'http://localhost');
+});
+
+test('private recovery is bound to the backend and rejects other servers before sending a secret', async () => {
+  const w = setup({apiBaseUrl:'https://a.example.com', pageOrigin:'https://team.github.io'});
+  await w.GameCoachBackend.connect({provider:'deepseek'});
+  const file = w.GameCoachBackend.recoveryFile();
+  assert.equal(file.version, 2); assert.equal(file.server, 'https://a.example.com');
+  const other = setup({apiBaseUrl:'https://b.example.com', pageOrigin:'https://team.github.io'});
+  await assert.rejects(other.GameCoachBackend.restoreAccess(file, 'private-code'), /私有恢复文件/);
+  assert.equal(other.requests.length, 0);
+  await assert.rejects(w.GameCoachBackend.restoreAccess({...file, version:1, server:'https://team.github.io'}), /私有恢复文件/);
+  // A new page origin can restore access to the same backend using the explicit v2 file.
+  const movedPage = setup({apiBaseUrl:'https://a.example.com', pageOrigin:'https://other.github.io'});
+  await movedPage.GameCoachBackend.restoreAccess(file, 'private-code');
+  const restore = movedPage.requests.find(item => item.url === 'https://a.example.com/api/sessions/restore');
+  assert.equal(restore.body.recovery, file.recovery);
+  assert.equal(restore.headers['X-GameCoach-Access'], 'private-code');
+  const same = setup({pageOrigin:'https://a.example.com'});
+  await same.GameCoachBackend.restoreAccess({...file, version:1});
+  assert.ok(same.requests.some(item => item.url === '/api/sessions/restore'));
+});
+
+test('GitHub Pages without a backend address keeps secrets local and explains setup', async () => {
+  const w = setup({pageOrigin:'https://team.github.io'});
+  await assert.rejects(w.GameCoachBackend.connect({provider:'deepseek',apiKey:'private-key'}), /frontend\/config.js/);
+  assert.equal(w.requests.length, 0);
 });

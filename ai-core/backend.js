@@ -1,22 +1,47 @@
 "use strict";
 
-// Only same-origin requests. Provider keys are sent once over TLS and never stored here.
+// The API origin is fixed by public deployment config, never by links or user input.
 window.GameCoachBackend = (() => {
   const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0];
   const sessions = new Map(), queues = new Map();
   const providerNames = new Set(['gemini', 'deepseek', 'openai', 'grok', 'claude']);
   let selectedProvider = '';
-  const storageKey = id => 'gamecoach-backend-session:' + id;
+  const pageOrigin = window.location?.origin || 'http://localhost';
+  const configuredOrigin = window.GameCoachConfig?.apiBaseUrl ?? '';
+  let apiOrigin, configurationError;
+  try {
+    if (typeof configuredOrigin !== 'string') throw new Error();
+    const address = new URL(configuredOrigin || pageOrigin);
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname);
+    if ((address.protocol !== 'https:' && !(address.protocol === 'http:' && local))
+        || address.username || address.password || address.search || address.hash || address.pathname !== '/'
+        || configuredOrigin.includes('?') || configuredOrigin.includes('#')) throw new Error();
+    if (window.location?.protocol === 'https:' && address.protocol !== 'https:') throw new Error();
+    apiOrigin = address.origin;
+  } catch { configurationError = true; }
+  const storageKey = id => 'gamecoach-backend-session:v2:' + encodeURIComponent(apiOrigin) + ':' + id;
   const demoProfiles = { quick: window.GameCoachAI.getProfile('quick'), coach: window.GameCoachAI.getProfile('coach') };
   function read(id) {
+    if (configurationError) return null;
     if (sessions.has(id)) return sessions.get(id);
     try {
-      const saved = JSON.parse(sessionStorage.getItem(storageKey(id)) || 'null');
-      if (saved?.token && saved?.conversations) { sessions.set(id, saved); return saved; }
+      let saved = JSON.parse(sessionStorage.getItem(storageKey(id)) || 'null');
+      // Legacy identities belonged to the page origin. Never send them to a remote API.
+      if (!saved && apiOrigin === pageOrigin) {
+        const oldKey = 'gamecoach-backend-session:' + id;
+        const legacy = JSON.parse(sessionStorage.getItem(oldKey) || 'null');
+        if (legacy?.token && legacy?.conversations) {
+          saved = { ...legacy, server: apiOrigin };
+          sessionStorage.setItem(storageKey(id), JSON.stringify(saved));
+          sessionStorage.removeItem(oldKey);
+        }
+      }
+      if (saved?.server === apiOrigin && saved?.token && saved?.conversations) { sessions.set(id, saved); return saved; }
     } catch {}
     return null;
   }
   function save(id, value) {
+    value.server = apiOrigin;
     sessions.set(id, value);
     try { sessionStorage.setItem(storageKey(id), JSON.stringify(value)); } catch {}
   }
@@ -43,19 +68,25 @@ window.GameCoachBackend = (() => {
     UPSTREAM_INCOMPLETE_REPLY: '模型没有返回可用的完整回答，请调整问题后重试。',
   };
   async function request(path, { token, signal, body, method = 'GET', accessCode } = {}) {
+    if (configurationError) throw new Error(tr('后端地址配置无效，请在 frontend/config.js 中填写 HTTPS 服务器地址，不要包含路径或密钥。'));
+    if (!configuredOrigin && window.location?.hostname.endsWith('.github.io')) {
+      throw new Error(tr('GitHub Pages 尚未配置后端，请先在 frontend/config.js 填写树莓派的 HTTPS 地址。'));
+    }
     const location = window.location;
     if (location && location.protocol !== 'https:' && !['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname)) {
       throw new Error(tr('请使用 HTTPS 打开部署网站；本地开发请使用 localhost。'));
     }
     let response;
     try {
-      response = await fetch('/api' + path, { method, signal, credentials: 'omit', cache: 'no-store',
+      const url = (apiOrigin === pageOrigin ? '' : apiOrigin) + '/api' + path;
+      response = await fetch(url, { method, signal, credentials: 'omit', cache: 'no-store',
+        redirect: 'error', referrerPolicy: 'no-referrer',
         headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}),
           ...(accessCode ? { 'X-GameCoach-Access': accessCode } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         ...(body ? { body: JSON.stringify(body) } : {}) });
     } catch (error) {
       if (signal?.aborted) throw error;
-      throw new Error(tr('无法连接服务器。本地记录仍保留，请从 Python 服务或部署网站打开页面。'));
+      throw new Error(tr('无法连接服务器。本地记录仍保留，请检查后端地址、HTTPS 和服务器的 CORS 设置。'));
     }
     if (!response.ok) {
       let code;
@@ -170,12 +201,15 @@ window.GameCoachBackend = (() => {
   function recoveryFile() {
     const user = window.GCStore.current(), session = read(user.id);
     if (!session?.recovery) throw new Error(tr('请先连接 API，创建可恢复的用户会话。'));
-    return { format: 'gamecoach-private-access', version: 1, server: window.location.origin,
+    return { format: 'gamecoach-private-access', version: 2, server: apiOrigin,
       localUserId: user.id, name: user.name, recovery: session.recovery };
   }
   async function restoreAccess(file, accessCode = '') {
-    if (file?.format !== 'gamecoach-private-access' || file.version !== 1 || typeof file.recovery !== 'string'
-        || file.server !== window.location.origin) throw new Error(tr('私有恢复文件无效，请检查文件和服务器地址。'));
+    const validServer = !configurationError && file?.server === apiOrigin
+      && (file.version === 2 || (file.version === 1 && apiOrigin === pageOrigin));
+    if (file?.format !== 'gamecoach-private-access' || !validServer || typeof file.recovery !== 'string') {
+      throw new Error(tr('私有恢复文件无效，请检查文件和服务器地址。'));
+    }
     const result = await request('/sessions/restore', { method: 'POST', accessCode, body: { recovery: file.recovery } });
     let user = window.GCStore.users().find(item => item.id === file.localUserId);
     if (user) window.GCStore.select(user.id, { notifyBackend: false });
