@@ -12,3 +12,4 @@ dist/
 .env.*
 !.env.example
 /LOCAL_COMMIT_NOTES.md
+.vscode/settings.json
