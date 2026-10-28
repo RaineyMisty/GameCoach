@@ -43,3 +43,28 @@ test('page loads the independent demo before core and loads shared tools, both m
   assert.ok(scripts.indexOf('../ai-core/demo.js') < scripts.indexOf('../ai-core/index.js'));
   assert.deepEqual(scripts.filter(source => source.startsWith('../skill/')), ['../skill/shared.js', '../skill/quick.js', '../skill/coach.js', '../skill/index.js']);
 });
+
+
+test('test build label is part of response content and matches streamed text in both modes', async () => {
+  const ctx = {window: {GameCoachConfig: {testBuildLabel: 'test-v2'}}, structuredClone,
+    setTimeout, clearTimeout, AbortController, DOMException, performance};
+  vm.createContext(ctx);
+  for (const file of ['ai-core/demo.js', 'ai-core/index.js', 'skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) {
+    vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, {filename: file});
+  }
+  for (const mode of ['quick', 'coach']) {
+    const chunks = [];
+    const response = await ctx.window.GameCoachSkill.run('hello', {mode, onDelta: text => chunks.push(text)});
+    assert.ok(response.content.startsWith('【测试 test-v2 · ' + (mode === 'coach' ? 'Coach' : 'Quick') + '】\n\n'));
+    assert.equal(chunks.join(''), response.content);
+  }
+  const chunks = [];
+  const hook = ctx.window.GameCoachSkillOutput.create(text => chunks.push(text), {mode: 'coach'});
+  hook.stream('first'); hook.stream('second');
+  const original = {content: 'firstsecond', model: 'model'};
+  assert.equal(hook.finish(original).content, chunks.join(''));
+  assert.equal(original.content, 'firstsecond');
+  ctx.window.GameCoachConfig.testBuildLabel = '';
+  const clean = await ctx.window.GameCoachSkill.run('hello');
+  assert.ok(!clean.content.includes('【测试'));
+});

@@ -4,7 +4,7 @@ const fs = require('node:fs'), path = require('node:path'), vm = require('node:v
 const crypto = require('node:crypto').webcrypto;
 const root = path.join(__dirname, '..');
 
-function setup({ saved = new Map(), blocked = false, apiBaseUrl = '', pageOrigin = 'http://localhost' } = {}) {
+function setup({ saved = new Map(), local = new Map(), blocked = false, accessDenied = false, apiBaseUrl = '', pageOrigin = 'http://localhost' } = {}) {
   const requests = [];
   let stateVersion = 0;
   let user = { id: 'local-user-1', name: '玩家', profile: { rank: 'Gold' } };
@@ -12,6 +12,10 @@ function setup({ saved = new Map(), blocked = false, apiBaseUrl = '', pageOrigin
   const ctx = {
     window: { location: new URL(pageOrigin), GameCoachConfig: { apiBaseUrl } },
     structuredClone, setTimeout, clearTimeout, AbortController, DOMException, performance, crypto, URL,
+    localStorage: {
+      getItem: key => { if (blocked) throw Error('blocked'); return local.get(key) ?? null; },
+      setItem: (key, value) => { if (blocked) throw Error('blocked'); local.set(key, value); },
+    },
     sessionStorage: {
       getItem: key => { if (blocked) throw Error('blocked'); return saved.get(key); },
       setItem: (key, value) => { if (blocked) throw Error('blocked'); saved.set(key, value); },
@@ -20,6 +24,9 @@ function setup({ saved = new Map(), blocked = false, apiBaseUrl = '', pageOrigin
     async fetch(url, options) {
       const endpoint = new URL(url, pageOrigin).pathname;
       requests.push({ url, ...options, body: options.body ? JSON.parse(options.body) : undefined });
+      if (accessDenied && ['/api/sessions', '/api/sessions/restore'].includes(endpoint)) {
+        return {ok: false, status: 403, json: async () => ({detail: {code: 'ACCESS_CODE_REQUIRED'}})};
+      }
       const data = endpoint === '/api/user-state' ? (options.method === 'PUT' ? {version: ++stateVersion} : {version: stateVersion, user: null})
         : endpoint === '/api/providers' ? {default_provider: 'gemini'}
         : endpoint === '/api/health' ? { model_configured: true }
@@ -266,4 +273,35 @@ test('independent Quick and Coach paths keep one backend conversation and the sa
   assert.ok(snapshots.length >= 3);
   for (const saved of snapshots) assert.deepEqual(saved.body.user.memory, person.memory);
   assert.deepEqual(person.profile, {rank: 'Gold', preferences: 'keep my choices'});
+});
+
+
+test('successful team access is remembered across tabs only for the configured backend', async () => {
+  const local = new Map();
+  const first = setup({local, apiBaseUrl: 'https://api.example'});
+  await first.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'team-demo-code'});
+  assert.equal(local.size, 1);
+  const reopened = setup({local, apiBaseUrl: 'https://api.example'});
+  await reopened.GameCoachBackend.connect({provider: 'deepseek'});
+  assert.equal(reopened.requests.find(item => item.url.endsWith('/api/sessions')).headers['X-GameCoach-Access'], 'team-demo-code');
+  const other = setup({local, apiBaseUrl: 'https://other.example'});
+  await other.GameCoachBackend.connect({provider: 'deepseek'});
+  assert.equal(other.requests.find(item => item.url.endsWith('/api/sessions')).headers['X-GameCoach-Access'], undefined);
+  const chat = reopened.requests.filter(item => item.url.endsWith('/api/connection?provider=deepseek'));
+  for (const request of chat) assert.equal(request.headers['X-GameCoach-Access'], undefined);
+});
+
+test('rejected team access is not saved and explicit input overrides an old saved code', async () => {
+  const local = new Map();
+  const bad = setup({local, accessDenied: true});
+  await assert.rejects(bad.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'wrong-code'}));
+  assert.equal(local.size, 0);
+  const accepted = setup({local});
+  await accepted.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'first-code'});
+  const replaced = setup({local});
+  await replaced.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'new-code'});
+  assert.equal(replaced.requests.find(item => item.url === '/api/sessions').headers['X-GameCoach-Access'], 'new-code');
+  assert.deepEqual([...local.values()], ['new-code']);
+  const blocked = setup({blocked: true});
+  await blocked.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'manual-code'});
 });

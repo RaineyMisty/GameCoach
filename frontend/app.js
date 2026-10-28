@@ -138,12 +138,6 @@ function messageElement(message) {
   const body = element('div', 'reply-body');
   const label = message.localOnly ? tr("本地记忆") : message.status === 'pending' ? tr("生成中") : message.status === 'cancelled' ? tr("已停止") : message.status === 'error' ? tr("调用失败") : message.isDemo !== false ? tr("演示回复") : tr("AI 回复");
   const heading = element('div', 'reply-header', 'GameCoach'); heading.append(element('span', 'demo-tag', label)); body.append(heading);
-  // 临时发布标识：只显示当前前端版本，不进入聊天正文或模型历史。
-  const buildLabel = window.GameCoachConfig?.testBuildLabel;
-  if (buildLabel && !message.localOnly) {
-    body.append(element('p', 'message-meta test-build-label',
-      '【前端测试 ' + buildLabel + ' · ' + (message.mode === 'coach' ? 'Coach' : 'Quick') + '】'));
-  }
   const text = element('div', 'reply-text');
   window.GameCoachMarkdown.renderInto(text, message.content || (message.status === 'pending' ? tr("正在生成…") : message.status === 'cancelled' ? tr("已停止生成。") : tr("没有回复内容。")));
   body.append(text);

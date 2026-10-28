@@ -259,17 +259,22 @@ window.GameCoachSkillInput = (() => {
 })();
 
 
-// ===== 7. 输出：透传正文，不二次改写 =====
+// ===== 7. 输出：测试标识写进正文，正式版关闭后透传 =====
 window.GameCoachSkillOutput = (() => {
   const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
-  function create(onDelta = () => {}) {
-    if (typeof onDelta !== 'function') throw new TypeError(tr("onDelta 必须是函数。"));
-    // 每次请求独立创建处理器。当前逐片段透传，不缓冲、不再调用模型。
-    function stream(delta) { onDelta(delta); }
+  function create(onDelta = () => {}, { mode = 'quick' } = {}) {
+    if (typeof onDelta !== 'function') throw new TypeError(tr('onDelta 必须是函数。'));
+    // 请求开始时固定版本，正文和已显示的片段使用同一份前缀。
+    const label = window.GameCoachConfig?.testBuildLabel;
+    const prefix = label ? '【测试 ' + label + ' · ' + (mode === 'coach' ? 'Coach' : 'Quick') + '】\n\n' : '';
+    let started = false;
+    function stream(delta) {
+      if (!delta) return;
+      if (!started) { started = true; if (prefix) onDelta(prefix); }
+      onDelta(delta);
+    }
     function finish(response) {
-      // 后续扩展位置：规则评分 → 可选文字整理 → 实体资料关联。
-      // 增加这些步骤时，要同时设计流式、取消和最终正文一致性。
-      return response;
+      return prefix ? { ...response, content: prefix + response.content } : response;
     }
     return Object.freeze({ stream, finish });
   }
@@ -280,9 +285,10 @@ window.GameCoachSkillOutput = (() => {
 // 共用调用适配：由模式文件传入自己的 build；沿用已有 ai-core 和后端协议。
 window.GameCoachSkillShared = (() => {
   async function execute(input, { context, onDelta, ...execution }, mode, build) {
+    const output = window.GameCoachSkillOutput.create(onDelta, { mode });
     if (window.GameCoachAI.getProviderName() === 'demo') {
-      const response = await window.GameCoachAI.call(input, { ...execution, mode, onDelta });
-      return { ...response, sources: [], usedMemories: [] };
+      const response = await window.GameCoachAI.call(input, { ...execution, mode, onDelta: output.stream });
+      return output.finish({ ...response, sources: [], usedMemories: [] });
     }
     const requestInput = structuredClone(input);
     const backend = window.GameCoachAI.getProviderName() === 'backend';
@@ -293,7 +299,6 @@ window.GameCoachSkillShared = (() => {
     // 后端读取同一段 SQLite 历史，仍只提交本轮 Skill 背景。
     const turn = backend && Array.isArray(requestInput) ? [requestInput.at(-1)] : requestInput;
     const prepared = build(turn, requestContext);
-    const output = window.GameCoachSkillOutput.create(onDelta);
     const response = await window.GameCoachAI.call(prepared.messages, { ...execution, mode, webSearch, onDelta: output.stream });
     return output.finish({ ...response, sources: [...prepared.sources, ...(response.sources || [])],
       usedMemories: backend ? (response.usedMemories || []) : prepared.usedMemories });

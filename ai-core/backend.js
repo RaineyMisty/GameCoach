@@ -20,6 +20,16 @@ window.GameCoachBackend = (() => {
     apiOrigin = address.origin;
   } catch { configurationError = true; }
   const storageKey = id => 'gamecoach-backend-session:v2:' + encodeURIComponent(apiOrigin) + ':' + id;
+  // 团队访问码按后端地址保存在本浏览器，仅用于创建 / 恢复会话。
+  const accessStorageKey = () => 'gamecoach-team-access:v1:' + encodeURIComponent(apiOrigin);
+  function savedAccessCode() {
+    if (configurationError) return '';
+    try { return localStorage.getItem(accessStorageKey()) || ''; } catch { return ''; }
+  }
+  function rememberAccessCode(value) {
+    if (configurationError || !value) return;
+    try { localStorage.setItem(accessStorageKey(), value); } catch {}
+  }
   const demoProfiles = { quick: window.GameCoachAI.getProfile('quick'), coach: window.GameCoachAI.getProfile('coach') };
   function read(id) {
     if (configurationError) return null;
@@ -113,16 +123,19 @@ window.GameCoachBackend = (() => {
     return { userId: user.id, user: { name: user.name, profile: user.profile || {} } };
   }
   async function ensureSession(person, signal, accessCode) {
+    accessCode = accessCode || savedAccessCode();
     let session = read(person.userId);
     if (session && (session.invalid || session.expires_at <= Date.now() / 1000)) {
       if (!session.recovery) throw new Error(tr('用户会话已失效，请重新连接或导入私有恢复文件。'));
       session = { ...session, ...await request('/sessions/restore', { method: 'POST', signal, accessCode,
         body: { recovery: session.recovery } }), invalid: false };
       save(person.userId, session);
+      rememberAccessCode(accessCode);
     }
     if (!session) {
       session = { ...await request('/sessions', { method: 'POST', body: person.user, signal, accessCode }), conversations: {} };
       save(person.userId, session);
+      rememberAccessCode(accessCode);
     }
     return session;
   }
@@ -210,7 +223,9 @@ window.GameCoachBackend = (() => {
     if (file?.format !== 'gamecoach-private-access' || !validServer || typeof file.recovery !== 'string') {
       throw new Error(tr('私有恢复文件无效，请检查文件和服务器地址。'));
     }
+    accessCode = accessCode || savedAccessCode();
     const result = await request('/sessions/restore', { method: 'POST', accessCode, body: { recovery: file.recovery } });
+    rememberAccessCode(accessCode);
     let user = window.GCStore.users().find(item => item.id === file.localUserId);
     if (user) window.GCStore.select(user.id, { notifyBackend: false });
     else user = window.GCStore.create((file.name || 'Recovered user').slice(0, 20) + ' ' + Date.now().toString().slice(-3));
