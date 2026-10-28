@@ -17,7 +17,7 @@ function setup(seed = {}) {
   }
   return { core: context.window.GameCoachAI, skill: context.window.GameCoachSkill, context, saved };
 }
-test('Quick and Coach choose different execution settings, not prompt instructions', async () => {
+test('Quick and Coach keep distinct execution settings and independent instructions', async () => {
   const { core, skill } = setup(); const calls = [];
   core.registerProvider('capture', { async generate(request) { calls.push(request); return { content: 'answer' }; } });
   core.configure({ provider: 'capture' });
@@ -27,7 +27,11 @@ test('Quick and Coach choose different execution settings, not prompt instructio
   await skill.run(messages, { mode: 'coach', context });
   assert.equal(calls[0].model, 'demo-instant'); assert.equal(calls[0].reasoningEffort, 'none'); assert.equal(calls[0].maxOutputTokens, 128);
   assert.equal(calls[1].model, 'demo-reasoning'); assert.equal(calls[1].reasoningEffort, 'medium');
-  assert.equal(JSON.stringify(calls[0].input), JSON.stringify(calls[1].input));
+  assert.notEqual(calls[0].input[0].content, calls[1].input[0].content);
+  assert.equal(calls[0].input[0].content, skill.quick.instructions);
+  assert.equal(calls[1].input[0].content, skill.coach.instructions);
+  assert.equal(JSON.stringify(calls[0].input.filter(item => item.role !== 'system')),
+    JSON.stringify(calls[1].input.filter(item => item.role !== 'system')));
   assert.match(JSON.stringify(calls[0].input), /露露/); assert.ok(!JSON.stringify(calls[0].input).includes(context.privateMarker));
   assert.equal(calls[0].input.at(-1).content, messages[0].content);
   assert.equal('context' in calls[0], false); assert.equal('mode' in calls[0], false);
@@ -128,7 +132,7 @@ test('Quick and Coach prepare independent windows from the same history and pres
   assert.ok(coach.messages.filter(item => item.role === 'assistant').length < 8);
   assert.equal(quick.messages.at(-1).content, messages.at(-1).content);
   assert.equal(coach.messages.at(-1).content, messages.at(-1).content);
-  assert.equal(skill.quick.instructions, skill.coach.instructions);
+  assert.notEqual(skill.quick.instructions, skill.coach.instructions);
   assert.equal(JSON.stringify({messages, presets}), before);
   assert.equal(JSON.stringify(skill.prepare(messages, presets, {mode: 'quick'})), JSON.stringify(quick.messages));
   assert.equal(JSON.stringify(skill.prepare(messages, presets, {mode: 'coach'})), JSON.stringify(coach.messages));
@@ -159,4 +163,24 @@ test('Skill inspection snapshots actual input and prepared messages without anot
   assert.equal(snapshots[0].context.draft.ally[0], 'lulu');
   const result = await skill.run('another question', {onInspect() {throw Error('debug failure');}});
   assert.equal(result.content, 'answer');
+});
+
+
+test('Quick uses its concise prompt in the actual call while preserving user wording and Coach policy', async () => {
+  const {core, skill, context} = setup(); const calls = [];
+  core.registerProvider('capture', {async generate(request) {calls.push(request); return {content: 'answer'};}});
+  core.configure({provider: 'capture'});
+  const coachBefore = skill.coach.instructions;
+  for (const question of ['这局辅助出什么？', '我不会纳亚菲利，打野怎么开？', '啊哈哈']) {
+    await skill.run(question, {mode: 'quick'});
+    assert.equal(calls.at(-1).input[0].content, skill.quick.instructions);
+    assert.equal(calls.at(-1).input.at(-1).content, question);
+  }
+  assert.equal(skill.coach.instructions, coachBefore);
+  assert.equal(skill.coach.instructions, context.window.GameCoachSkillRules.instructions);
+  assert.ok(!skill.quick.instructions.includes('Quick/Coach 是回答档位'));
+  context.window.GameCoachI18n = {locale: 'en', t: key => key};
+  await skill.run('Which support?', {mode: 'quick'});
+  assert.match(calls.at(-1).input[0].content, /two or three seconds/);
+  assert.ok(!/[\u3400-\u9fff]/.test(calls.at(-1).input[0].content));
 });

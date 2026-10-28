@@ -6,7 +6,7 @@
 window.GameCoachConfig = Object.freeze({
   apiBaseUrl: 'https://raspberrypi.taila8f0ba.ts.net',
   // 每次测试发布前更新；正式版本设为 '' 即可隐藏独立调试面板；不修改回答正文。
-  testBuildLabel: 'skill-inspector-v1',
+  testBuildLabel: 'quick-brief-v1',
   // 正式发布设为 false：隐藏头像调试入口，并停止采集 Skill 输入。
   skillDebugEnabled: true
 });
