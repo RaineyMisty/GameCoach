@@ -32,3 +32,9 @@
 `node --test tests/*.test.cjs`
 
 测试使用模拟模型；真实回答质量仍需实际模型验收。
+
+## Skill 输入调试
+
+frontend/config.js 的 skillDebugEnabled 控制采集与头像入口。开启后，点击 AI 回复头像即可查看该次 run 收到的 input/context，以及 build 实际产生的消息、来源和记忆信息；不重新调用 prepare，不调用第二次模型。
+
+shared.execute 通过可选 onInspect 回调提供副本，frontend/debug.js 独立保存和显示。快照只在当前标签页 sessionStorage 中保留每用户最近 20 条，刷新可查看；不进入聊天正文、模型请求或普通用户备份。以前未采集的回答不伪造快照。关闭开关后不采集、不显示入口。

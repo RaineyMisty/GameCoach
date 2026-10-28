@@ -177,5 +177,13 @@
     <div class="drawer-header"><div><p class="eyebrow">RECENT CONVERSATIONS</p><h2 id="history-title">对话历史</h2></div><button class="icon-button" data-close="history-dialog" aria-label="关闭对话历史">×</button></div>
     <div class="drawer-content"><button id="history-new" class="secondary-button wide-button">＋ 开始新对话</button><div id="history-list" class="history-list"></div><p class="fine-print">每位用户保留最近 30 个对话。</p></div>
   </dialog>
+
+  <dialog id="skill-debug-dialog" class="skill-debug-dialog" aria-labelledby="skill-debug-title">
+    <header class="skill-debug-heading"><h2 id="skill-debug-title">Skill 输入调试</h2><button id="skill-debug-close" type="button" aria-label="关闭">×</button></header>
+    <p id="skill-debug-meta" class="subtle"></p>
+    <button id="skill-debug-copy" type="button" class="text-button">复制完整快照</button>
+    <h3>Skill 收到的输入</h3><pre id="skill-debug-input"></pre>
+    <h3>Skill 整理后的消息</h3><pre id="skill-debug-prepared"></pre>
+  </dialog>
 </body>
 </html>

@@ -133,7 +133,14 @@ function messageElement(message) {
     const lineup = messageDraftElement(message.draft); if (lineup) wrapper.append(lineup);
     return wrapper;
   }
-  wrapper.append(element('span', 'message-logo', '✦'));
+  const canInspect = window.GameCoachDebug?.enabled && !message.localOnly;
+  const logo = element(canInspect ? 'button' : 'span', 'message-logo', '✦');
+  if (canInspect) {
+    logo.type = 'button'; logo.title = tr('查看 Skill 输入');
+    logo.setAttribute('aria-label', tr('查看 Skill 输入'));
+    logo.onclick = () => window.GameCoachDebug.open(message.id);
+  }
+  wrapper.append(logo);
   if (message.id) wrapper.id = message.id;
   const body = element('div', 'reply-body');
   const label = message.localOnly ? tr("本地记忆") : message.status === 'pending' ? tr("生成中") : message.status === 'cancelled' ? tr("已停止") : message.status === 'error' ? tr("调用失败") : message.isDemo !== false ? tr("演示回复") : tr("AI 回复");
@@ -239,6 +246,8 @@ async function send(override, options = {}) {
     window.GameCoachDebug?.start(mode);
     const response = await window.GameCoachSkill.run(input, {
       context, mode, signal: request.controller.signal,
+      ...(window.GameCoachDebug?.enabled ? {onInspect: snapshot =>
+        window.GameCoachDebug.capture(reply.id, request.userId, snapshot)} : {}),
       ...(window.GameCoachBackend?.isActive() ? { conversation: {
         id: session.id, userId: request.userId, replyId: reply.id,
         user: { name: store.current().name, profile: structuredClone(store.current().profile) },

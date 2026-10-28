@@ -274,9 +274,22 @@ window.GameCoachSkillOutput = (() => {
 
 // 共用调用适配：由模式文件传入自己的 build；沿用已有 ai-core 和后端协议。
 window.GameCoachSkillShared = (() => {
-  async function execute(input, { context, onDelta, ...execution }, mode, build) {
+  async function execute(input, { context, onDelta, onInspect, ...execution }, mode, build) {
+    // 调试是可选旁路，不进入模型请求，也不能改动本次输入。
+    const inspect = value => {
+      if (typeof onInspect !== 'function') return;
+      try { onInspect(structuredClone(value)); } catch {} // 调试失败不影响问答。
+    };
+    if (typeof onInspect === 'function') {
+      const allowedContext = {};
+      for (const key of ['draft', 'memory', 'declarations', 'lastCall', 'expansion', 'searchMode']) {
+        if (context?.[key] !== undefined) allowedContext[key] = context[key];
+      }
+      inspect({stage: 'received', mode, input, context: allowedContext});
+    }
     const output = window.GameCoachSkillOutput.create(onDelta);
     if (window.GameCoachAI.getProviderName() === 'demo') {
+      inspect({stage: 'demo', mode});
       const response = await window.GameCoachAI.call(input, { ...execution, mode, onDelta: output.stream });
       return output.finish({ ...response, sources: [], usedMemories: [] });
     }
@@ -289,6 +302,8 @@ window.GameCoachSkillShared = (() => {
     // 后端读取同一段 SQLite 历史，仍只提交本轮 Skill 背景。
     const turn = backend && Array.isArray(requestInput) ? [requestInput.at(-1)] : requestInput;
     const prepared = build(turn, requestContext);
+    inspect({stage: 'prepared', mode, messages: prepared.messages,
+      sources: prepared.sources, usedMemories: prepared.usedMemories});
     const response = await window.GameCoachAI.call(prepared.messages, { ...execution, mode, webSearch, onDelta: output.stream });
     return output.finish({ ...response, sources: [...prepared.sources, ...(response.sources || [])],
       usedMemories: backend ? (response.usedMemories || []) : prepared.usedMemories });

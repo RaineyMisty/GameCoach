@@ -134,3 +134,29 @@ test('Quick and Coach prepare independent windows from the same history and pres
   assert.equal(JSON.stringify(skill.prepare(messages, presets, {mode: 'coach'})), JSON.stringify(coach.messages));
   assert.throws(() => skill.prepare(messages, presets, {mode: 'unknown'}));
 });
+
+
+test('Skill inspection snapshots actual input and prepared messages without another model call or leaking callbacks', async () => {
+  const {core, skill, context} = setup(); const snapshots = []; let seen, calls = 0;
+  core.registerProvider('capture', {async generate(request) {calls++; seen = request; return {content: 'answer'};}});
+  core.configure({provider: 'capture'});
+  const draft = context.window.GameCoachDraft.empty(); draft.ally[0] = 'lulu';
+  const input = [{role: 'user', content: 'question'}];
+  await skill.run(input, {mode: 'coach', context: {draft, apiKey: 'never-in-debug'}, onInspect(value) {
+    snapshots.push(structuredClone(value));
+    if (value.stage === 'received') value.input[0].content = 'changed by inspector';
+    if (value.stage === 'prepared') value.messages.at(-1).content = 'changed prepared copy';
+  }});
+  assert.equal(calls, 1); assert.equal(snapshots.length, 2);
+  assert.equal(snapshots[0].input[0].content, 'question');
+  assert.equal(snapshots[1].messages.at(-1).content, 'question');
+  assert.equal(seen.input.at(-1).content, 'question');
+  assert.equal(JSON.stringify(snapshots[1].messages), JSON.stringify(seen.input));
+  assert.ok(!JSON.stringify(snapshots).includes('never-in-debug'));
+  assert.ok(!Object.hasOwn(seen, 'onInspect'));
+  input[0].content = 'later edit'; draft.ally[0] = 'ahri';
+  assert.equal(snapshots[0].input[0].content, 'question');
+  assert.equal(snapshots[0].context.draft.ally[0], 'lulu');
+  const result = await skill.run('another question', {onInspect() {throw Error('debug failure');}});
+  assert.equal(result.content, 'answer');
+});

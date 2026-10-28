@@ -289,3 +289,13 @@ html[lang="en"] .slot-name, html[lang="en"] .champion-name { overflow: hidden; t
   .header-actions .avatar { width: 29px; height: 29px; }
   .bp-trigger { padding-inline: 6px; font-size: 11px; }
 }
+
+/* 调试窗口独立于对话正文。 */
+.skill-debug-dialog { width: min(960px, 94vw); max-height: 88dvh; margin: auto; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--bg); color: var(--ink); overflow: auto; }
+.skill-debug-dialog::backdrop { background: #0006; }
+.skill-debug-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.skill-debug-heading button { padding: 6px 12px; background: transparent; font-size: 24px; }
+.skill-debug-dialog h3 { margin: 18px 0 10px; font-size: 14px; }
+.skill-debug-dialog pre { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.6; }
+button.message-logo { cursor: pointer; border: 0; padding: 0; }
+button.message-logo:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }

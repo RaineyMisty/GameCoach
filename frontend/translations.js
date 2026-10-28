@@ -1,6 +1,11 @@
 'use strict';
 // English UI copy. Chinese source strings are stable keys; no user data belongs here.
 window.GAMECOACH_ENGLISH = Object.freeze({
+  "查看 Skill 输入": "Inspect Skill input",
+  "Skill 输入调试": "Skill input inspector",
+  "复制完整快照": "Copy full snapshot",
+  "Skill 收到的输入": "Input received by Skill",
+  "Skill 整理后的消息": "Messages prepared by Skill",
   "保存并连接 API": "Save and connect API",
   "输入后保存在此浏览器；留空使用服务器 Key": "Saved in this browser; leave blank to use the saved server key or server default",
   "输入后保存在此浏览器，刷新自动加载": "Saved in this browser and restored on reload",
