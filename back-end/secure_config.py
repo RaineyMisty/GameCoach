@@ -4,6 +4,7 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import HTTPException
@@ -29,6 +30,29 @@ def setting(name, default=""):
 
 def production():
     return setting("GAMECOACH_ENV") == "production"
+
+
+def parse_frontend_origins(raw, *, allow_local_http=False):
+    """Accept explicit origins only; never wildcard, paths, or embedded credentials."""
+    origins = []
+    for value in raw.split(","):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            parsed = urlsplit(value)
+            parsed.port  # Reject malformed or out-of-range ports.
+            local_http = allow_local_http and parsed.scheme == "http" and parsed.hostname in ("localhost", "127.0.0.1", "::1")
+            if (not (parsed.scheme == "https" or local_http) or not parsed.hostname
+                or any(char.isspace() for char in value) or "*" in value
+                or parsed.username is not None or parsed.password is not None
+                or parsed.path or parsed.query or parsed.fragment or "?" in value or "#" in value):
+                raise ValueError()
+        except ValueError:
+            raise ValueError("Frontend origins must be explicit HTTPS origins without paths or credentials") from None
+        if value not in origins:
+            origins.append(value)
+    return origins
 
 
 class Vault:

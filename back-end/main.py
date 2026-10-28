@@ -18,12 +18,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from providers import (PROVIDERS, ProviderName, check_connection, generate_reply,
                        provider_info, selected_provider)
-from secure_config import Vault, production, setting
+from secure_config import Vault, production, setting, parse_frontend_origins
 from training_memory import retrieve
 
 ROOT = Path(__file__).resolve().parent
@@ -158,6 +159,7 @@ def database(path):
 
 
 def create_app(db_path=None, generator=None):
+    origins = parse_frontend_origins(setting("GAMECOACH_CORS_ORIGINS"), allow_local_http=not production())
     vault = Vault()
     invite = setting("GAMECOACH_ACCESS_CODE")
     if production() and (len(invite) < 20 or not setting("GAMECOACH_ALLOWED_HOSTS").strip()):
@@ -209,6 +211,10 @@ def create_app(db_path=None, generator=None):
     app.add_middleware(BodyLimitMiddleware)
     app.state.generate = generator or generate_reply
     app.state.vault = vault
+    if origins:
+        app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=False,
+                           allow_methods=["GET", "POST", "PUT", "DELETE"],
+                           allow_headers=["Authorization", "Content-Type", "X-GameCoach-Access"], max_age=600)
     recent_calls = deque()
     if production():
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=setting("GAMECOACH_ALLOWED_HOSTS").split(","))

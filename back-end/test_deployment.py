@@ -17,7 +17,7 @@ class DeploymentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             destination = Path(folder) / "server.json"
             command = [sys.executable, str(ROOT / "back-end/manage_config.py"), "--provider", "deepseek",
-                       "--domain", "coach.example.com", "--output", str(destination)]
+                       "--domain", "coach.example.com", "--frontend-origin", "https://team.github.io", "--output", str(destination)]
             environment = {**os.environ, "DEEPSEEK_API_KEY": "fake-private-deployment-api-key"}
             result = subprocess.run(command, env=environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -26,6 +26,7 @@ class DeploymentTests(unittest.TestCase):
                 self.assertNotIn(config[name], result.stdout + result.stderr)
             self.assertEqual(config["GAMECOACH_PROVIDER"], "deepseek")
             self.assertEqual(config["GAMECOACH_ENV"], "production")
+            self.assertEqual(config["GAMECOACH_CORS_ORIGINS"], "https://team.github.io")
             self.assertGreaterEqual(len(config["GAMECOACH_ACCESS_CODE"]), 20)
             again = subprocess.run(command, env=environment, capture_output=True, text=True)
             self.assertNotEqual(again.returncode, 0)
