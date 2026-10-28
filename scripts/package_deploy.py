@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ["Dockerfile", "compose.yaml", "Caddyfile", ".dockerignore", ".env.example", "DEPLOYMENT.md", "CHANGELOG.md", "LICENSE",
+         "deploy/gamecoach.service.example",
          "back-end/main.py", "back-end/providers.py", "back-end/secure_config.py", "back-end/training_memory.py", "back-end/manage_config.py",
          "back-end/requirements.txt", "frontend/vendor/marked-LICENSE.md"]
 PUBLIC = ("frontend", "ai-core", "skill", "memory", "resources")

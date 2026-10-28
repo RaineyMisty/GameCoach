@@ -1,0 +1,25 @@
+[Unit]
+Description=GameCoach FastAPI backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Replace YOUR_PI_USER and every project path before installation.
+User=YOUR_PI_USER
+WorkingDirectory=/home/YOUR_PI_USER/GameCoach
+Environment=GAMECOACH_CONFIG_FILE=/home/YOUR_PI_USER/GameCoach/back-end/.secrets/server.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/YOUR_PI_USER/GameCoach/.venv/bin/python -m uvicorn main:app --app-dir back-end --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/YOUR_PI_USER/GameCoach/back-end/data
+
+[Install]
+WantedBy=multi-user.target
