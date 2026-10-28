@@ -7,7 +7,7 @@ function setup(locale='en') {
   vm.createContext(ctx);
   for(const file of ['resources/lol/champions.js','resources/lolm/champions.js','resources/lol/knowledge.js','resources/lolm/knowledge.js','resources/lol/english.js',
     'frontend/translations.js','frontend/i18n.js','frontend/data.js','frontend/draft.js','memory/defaults.js','memory/locales.js','memory/index.js','memory/retrieve.js',
-    'ai-core/demo.js', 'ai-core/index.js','ai-core/gemini.js','skill/index.js']) vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file});
+    'ai-core/demo.js', 'ai-core/index.js','ai-core/gemini.js','skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file});
   const w=ctx.window, draft=w.GameCoachDraft.empty('lolm'), ids=w.GameCoachGames.get('lolm').champions.slice(0,10).map(hero=>hero.id);
   draft.ally=ids.slice(0,5); draft.enemy=ids.slice(5); return {...w,draft,ctx};
 }

@@ -12,7 +12,7 @@ function setup(seed = {}) {
   vm.createContext(context);
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js',
     'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'memory/commands.js',
-    'ai-core/demo.js', 'ai-core/index.js', 'skill/index.js']) {
+    'ai-core/demo.js', 'ai-core/index.js', 'skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   return { core: context.window.GameCoachAI, skill: context.window.GameCoachSkill, context, saved };
@@ -107,4 +107,30 @@ test('new response metadata survives local storage and pending replies restore s
   assert.equal(messages[0].searched, true); assert.equal(messages[0].usage.totalTokens, 25);
   assert.equal(messages[0].searchSuggestions, '<div>Suggestions</div>');
   assert.equal(messages[0].usedMemories[0].id, 'analysis-support');
+});
+
+
+test('Quick and Coach prepare independent windows from the same history and preset without modifying either', () => {
+  const {skill, context} = setup();
+  const draft = context.window.GameCoachDraft.empty();
+  const memory = context.window.GameCoachMemory.seed();
+  const messages = Array.from({length: 8}, (_, i) => [
+    {role: 'user', content: 'support question ' + i, draft},
+    {role: 'assistant', content: 'answer ' + i},
+  ]).flat();
+  messages.push({role: 'user', content: 'Which support should I pick?'});
+  const presets = {draft, memory};
+  const before = JSON.stringify({messages, presets});
+  const quick = skill.quick.build(messages, presets);
+  const coach = skill.coach.build(messages, presets);
+  assert.notStrictEqual(skill.quick, skill.coach);
+  assert.equal(quick.messages.filter(item => item.role === 'assistant').length, 8);
+  assert.ok(coach.messages.filter(item => item.role === 'assistant').length < 8);
+  assert.equal(quick.messages.at(-1).content, messages.at(-1).content);
+  assert.equal(coach.messages.at(-1).content, messages.at(-1).content);
+  assert.equal(skill.quick.instructions, skill.coach.instructions);
+  assert.equal(JSON.stringify({messages, presets}), before);
+  assert.equal(JSON.stringify(skill.prepare(messages, presets, {mode: 'quick'})), JSON.stringify(quick.messages));
+  assert.equal(JSON.stringify(skill.prepare(messages, presets, {mode: 'coach'})), JSON.stringify(coach.messages));
+  assert.throws(() => skill.prepare(messages, presets, {mode: 'unknown'}));
 });

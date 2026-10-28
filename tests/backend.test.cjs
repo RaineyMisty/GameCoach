@@ -33,7 +33,7 @@ function setup({ saved = new Map(), blocked = false, apiBaseUrl = '', pageOrigin
   };
   vm.createContext(ctx);
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js',
-    'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'ai-core/demo.js', 'ai-core/index.js', 'skill/index.js']) {
+    'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'ai-core/demo.js', 'ai-core/index.js', 'skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename: file });
   }
   ctx.window.GCStore = { current: () => user, users: () => [user], select() {},
@@ -244,4 +244,26 @@ test('GitHub Pages without a backend address keeps secrets local and explains se
   const w = setup({pageOrigin:'https://team.github.io'});
   await assert.rejects(w.GameCoachBackend.connect({provider:'deepseek',apiKey:'private-key'}), /frontend\/config.js/);
   assert.equal(w.requests.length, 0);
+});
+
+
+test('independent Quick and Coach paths keep one backend conversation and the same user presets', async () => {
+  const w = setup();
+  const person = {id: 'shared-player', name: 'Player', profile: {rank: 'Gold', preferences: 'keep my choices'},
+    memory: {enabled: true, entries: [{id: 'my-note', title: 'Preference', content: 'Explore unusual support picks', enabled: true}]}};
+  w.setUser(person);
+  await w.GameCoachBackend.testConnection(); w.GameCoachBackend.activate();
+  const conversation = w.conversation('shared-chat');
+  await w.GameCoachSkill.quick.run('first question', {conversation, mode: 'coach'});
+  await w.GameCoachSkill.coach.run('follow-up', {conversation, mode: 'quick'});
+  await w.GameCoachSkill.run('back to Quick', {conversation, mode: 'quick'});
+  const turns = w.requests.filter(item => item.url === '/api/chat');
+  assert.deepEqual(turns.map(item => item.body.mode), ['quick', 'coach', 'quick']);
+  assert.equal(new Set(turns.map(item => item.body.conversation_id)).size, 1);
+  assert.equal(new Set(turns.map(item => item.headers.Authorization)).size, 1);
+  for (const turn of turns) assert.deepEqual(turn.body.user.profile, person.profile);
+  const snapshots = w.requests.filter(item => item.url === '/api/user-state' && item.method === 'PUT');
+  assert.ok(snapshots.length >= 3);
+  for (const saved of snapshots) assert.deepEqual(saved.body.user.memory, person.memory);
+  assert.deepEqual(person.profile, {rank: 'Gold', preferences: 'keep my choices'});
 });

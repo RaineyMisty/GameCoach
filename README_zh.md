@@ -78,7 +78,7 @@ users 目录已在 .gitignore 中整体排除。本地目录是空目录时 Git 
 
 未连接 API 时，ai-core 默认使用本地 demo provider，不联网、不调用真实模型；连接后通过后端调用所选厂商，实际费用与额度由你选择的账号计划决定。前端只显示 Skill 返回的内容，没有固定建议或 50 分评分。手游英雄名单来自手游官网 2026-10-18 快照，共 142 位；端游英雄名单、中文名称与共用头像来自 Riot Data Dragon 16.20.1，别称和常用位置由项目整理。位置分类不代表官方推荐、强度或当期版本结论。
 
-调用链为 Front-End → Skill → ai-core → Skill → Front-End，独立 memory 模块向 Skill 提供按需选择的可选经验。真实 Skill 的规则、背景整理、调用与输出统一位于 skill/index.js，按段落组织；未接入 AI 的界面演示独立位于 ai-core/demo.js，并跳过真实 Skill 的背景整理。Quick / Coach 仍通过 ai-core 执行配置切换。代码阅读入口及消息示例见 [skill/README.md](./skill/README.md)。ai-core 接受通用文本或消息列表，不要求游戏专用字段。
+调用链为 Front-End → Skill → ai-core → Skill → Front-End，独立 memory 模块向 Skill 提供按需选择的可选经验。真实 Skill 由 skill/index.js 分发到独立的 quick.js / coach.js，共用事实、格式与调用工具位于 shared.js；未接入 AI 的界面演示独立位于 ai-core/demo.js，并跳过真实 Skill 的背景整理。Quick / Coach 仍通过 ai-core 执行配置切换。代码阅读入口及消息示例见 [skill/README.md](./skill/README.md)。ai-core 接受通用文本或消息列表，不要求游戏专用字段。
 
 ## 长期记忆
 

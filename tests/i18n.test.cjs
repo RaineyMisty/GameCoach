@@ -9,7 +9,7 @@ function setup(locale, blocked = false) {
   vm.createContext(ctx);
   for (const file of ['resources/lol/champions.js','resources/lolm/champions.js','resources/lol/knowledge.js','resources/lolm/knowledge.js','resources/lol/english.js',
     'frontend/translations.js','frontend/i18n.js','frontend/data.js','frontend/draft.js','memory/defaults.js','memory/locales.js','memory/index.js','memory/retrieve.js','memory/commands.js',
-    'frontend/storage.js','frontend/conversation.js','ai-core/demo.js', 'ai-core/index.js','ai-core/gemini.js','skill/index.js']) {
+    'frontend/storage.js','frontend/conversation.js','ai-core/demo.js', 'ai-core/index.js','ai-core/gemini.js','skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) {
     vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx,{filename:file});
   }
   return { ...ctx.window, saved, ctx };

@@ -11,7 +11,7 @@ function setup() {
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'resources/lol/knowledge.js',
     'resources/lolm/knowledge.js', 'frontend/data.js', 'frontend/draft.js', 'frontend/conversation.js', 'ai-core/demo.js', 'ai-core/index.js',
     'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'memory/commands.js',
-    'skill/index.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx);
+    'skill/shared.js', 'skill/quick.js', 'skill/coach.js', 'skill/index.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx);
   return { ...ctx.window, ctx };
 }
 test('official snapshots cover both catalogues with provenance and separate Corki mechanics', () => {
