@@ -1,6 +1,14 @@
 'use strict';
 // English UI copy. Chinese source strings are stable keys; no user data belongs here.
 window.GAMECOACH_ENGLISH = Object.freeze({
+  "阵容": "Lineup",
+  "固定": "Pin",
+  "已固定": "Pinned",
+  "展开": "Expand",
+  "收起": "Collapse",
+  "固定当前位置": "Lock this position",
+  "解除固定后可拖动": "Unpin to move",
+  "拖动阵容窗口，方向键也可移动": "Move lineup panel; arrow keys also move it",
   "查看 Skill 输入": "Inspect Skill input",
   "Skill 输入调试": "Skill input inspector",
   "复制完整快照": "Copy full snapshot",

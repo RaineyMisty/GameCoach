@@ -37,6 +37,7 @@
   <script src="./conversation.js" defer></script>
   <script src="./message-sources.js" defer></script>
   <script src="./draft-ui.js" defer></script>
+  <script src="./draft-summary.js" defer></script>
   <script src="./memory-ui.js" defer></script>
   <script src="./debug.js" defer></script>
   <script src="./app.js" defer></script>
@@ -93,9 +94,18 @@
       <p id="status" class="status" role="status"></p>
     </div>
   </main>
-  <aside class="draft-summary" aria-label="阵容概览">
+  <aside id="draft-summary" class="draft-summary" aria-label="阵容概览">
+    <div class="summary-toolbar">
+      <button id="summary-drag" type="button" class="summary-drag" aria-label="拖动阵容窗口，方向键也可移动" title="拖动阵容窗口，方向键也可移动">⠿ <span>阵容</span></button>
+      <div class="summary-controls">
+        <button id="summary-pin" type="button" aria-pressed="false">固定</button>
+        <button id="summary-toggle" type="button" aria-expanded="true" aria-controls="summary-content">收起</button>
+      </div>
+    </div>
+    <div id="summary-content" class="summary-content">
     <div class="summary-team"><div id="summary-bans-ally" class="summary-bans" role="group" aria-label="蓝方禁用英雄" hidden></div><div id="summary-ally" class="summary-slots" role="group" aria-label="蓝方阵容"></div></div>
     <div class="summary-team"><div id="summary-bans-enemy" class="summary-bans" role="group" aria-label="红方禁用英雄" hidden></div><div id="summary-enemy" class="summary-slots" role="group" aria-label="红方阵容"></div></div>
+    </div>
   </aside>
   </div>
 
