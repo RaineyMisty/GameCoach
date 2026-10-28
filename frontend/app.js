@@ -293,6 +293,11 @@ async function send(override, options = {}) {
     if (isCurrent()) {
       activeRequest = null; session.messages = session.messages.slice(-100);
       store.persist(); resizeInput(); renderConversation();
+      // 最终回复重绘完成后滚到页面底部；切换对话或开始新请求时不抢滚动。
+      requestAnimationFrame(() => {
+        if (activeRequest || store.current().id !== request.userId || state.sessionId !== request.sessionId) return;
+        window.scrollTo({ top: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight), behavior: 'smooth' });
+      });
     }
   }
 }
