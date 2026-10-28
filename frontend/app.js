@@ -236,6 +236,7 @@ async function send(override, options = {}) {
   requestAnimationFrame(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); $('#question').focus({ preventScroll: true }); });
   const isCurrent = () => activeRequest === request && store.current().id === request.userId && state.sessionId === request.sessionId;
   try {
+    window.GameCoachDebug?.start(mode);
     const response = await window.GameCoachSkill.run(input, {
       context, mode, signal: request.controller.signal,
       ...(window.GameCoachBackend?.isActive() ? { conversation: {
@@ -263,6 +264,7 @@ async function send(override, options = {}) {
       },
     });
     if (!isCurrent()) return;
+    window.GameCoachDebug?.finish(response);
     reply.content = response.content;
     reply.provider = response.provider; reply.model = response.model; reply.isDemo = response.isDemo;
     reply.upstreamProvider = response.upstreamProvider;
@@ -272,6 +274,7 @@ async function send(override, options = {}) {
     reply.usedMemories = response.usedMemories;
   } catch (error) {
     if (!isCurrent()) return;
+    window.GameCoachDebug?.fail(error);
     reply.status = error.name === 'AbortError' ? 'cancelled' : 'error';
     reply.attempts = error.attempts || 1;
     reply.content = (reply.content ? reply.content + '\n\n' : '') + (error.name === 'AbortError' ? tr("已停止生成。")

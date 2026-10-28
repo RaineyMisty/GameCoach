@@ -259,22 +259,13 @@ window.GameCoachSkillInput = (() => {
 })();
 
 
-// ===== 7. 输出：临时版本标识属于新回答正文，随回答保存 =====
+// ===== 7. 输出：原样返回模型正文；调试信息由独立页面面板显示 =====
 window.GameCoachSkillOutput = (() => {
   const tr = (...args) => window.GameCoachI18n ? window.GameCoachI18n.t(...args) : args[0].replace(/\{(\d+)\}/g, (_, i) => args[Number(i) + 1]);
-  function create(onDelta = () => {}, { mode = 'quick' } = {}) {
+  function create(onDelta = () => {}) {
     if (typeof onDelta !== 'function') throw new TypeError(tr('onDelta 必须是函数。'));
-    const version = window.GameCoachConfig?.testBuildLabel;
-    const prefix = version ? '【测试 ' + version + ' · ' + (mode === 'coach' ? 'Coach' : 'Quick') + '】\n\n' : '';
-    let started = false;
-    function stream(delta) {
-      if (!delta) return;
-      if (!started) { started = true; if (prefix) onDelta(prefix); }
-      onDelta(delta);
-    }
-    function finish(response) {
-      return prefix ? {...response, content: prefix + response.content} : response;
-    }
+    function stream(delta) { onDelta(delta); }
+    function finish(response) { return response; }
     return Object.freeze({stream, finish});
   }
   return Object.freeze({create});
@@ -284,7 +275,7 @@ window.GameCoachSkillOutput = (() => {
 // 共用调用适配：由模式文件传入自己的 build；沿用已有 ai-core 和后端协议。
 window.GameCoachSkillShared = (() => {
   async function execute(input, { context, onDelta, ...execution }, mode, build) {
-    const output = window.GameCoachSkillOutput.create(onDelta, { mode });
+    const output = window.GameCoachSkillOutput.create(onDelta);
     if (window.GameCoachAI.getProviderName() === 'demo') {
       const response = await window.GameCoachAI.call(input, { ...execution, mode, onDelta: output.stream });
       return output.finish({ ...response, sources: [], usedMemories: [] });

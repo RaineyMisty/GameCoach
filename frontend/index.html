@@ -38,6 +38,7 @@
   <script src="./message-sources.js" defer></script>
   <script src="./draft-ui.js" defer></script>
   <script src="./memory-ui.js" defer></script>
+  <script src="./debug.js" defer></script>
   <script src="./app.js" defer></script>
 </head>
 <body>
@@ -88,6 +89,7 @@
         <button type="button" data-prompt="帮我梳理一场对局的复盘思路。" data-mode="coach">赛后复盘 <span>↗</span></button>
       </div>
       <p class="page-note"><span id="provider-label">Wild Rift · 本地演示</span> · <button type="button" id="ai-settings-shortcut">连接 AI</button></p>
+      <details id="debug-panel" class="page-note" hidden><summary id="debug-build"></summary><span id="debug-request">No request yet</span></details>
       <p id="status" class="status" role="status"></p>
     </div>
   </main>

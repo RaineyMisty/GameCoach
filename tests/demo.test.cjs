@@ -45,7 +45,7 @@ test('page loads the independent demo before core and loads shared tools, both m
 });
 
 
-test('version marker is saved in response content and matches streamed text in either mode', async () => {
+test('debug version never enters response content or streamed text in either mode', async () => {
   const ctx = {window: {GameCoachConfig: {testBuildLabel: 'test-v2'}}, structuredClone,
     setTimeout, clearTimeout, AbortController, DOMException, performance};
   vm.createContext(ctx);
@@ -55,13 +55,15 @@ test('version marker is saved in response content and matches streamed text in e
   for (const mode of ['quick', 'coach']) {
     const chunks = [];
     const response = await ctx.window.GameCoachSkill.run('hello', {mode, onDelta: text => chunks.push(text)});
-    assert.ok(response.content.startsWith('【测试 test-v2 · ' + (mode === 'coach' ? 'Coach' : 'Quick') + '】\n\n'));
+    assert.ok(!response.content.includes('test-v2'));
+    assert.ok(!response.content.includes('【测试'));
     assert.equal(chunks.join(''), response.content);
   }
   const chunks = [];
   const hook = ctx.window.GameCoachSkillOutput.create(text => chunks.push(text), {mode: 'coach'});
   hook.stream('first'); hook.stream('second');
   const original = {content: 'firstsecond', model: 'model'};
+  assert.strictEqual(hook.finish(original), original);
   assert.equal(hook.finish(original).content, chunks.join(''));
   assert.equal(original.content, 'firstsecond');
   ctx.window.GameCoachConfig.testBuildLabel = '';
