@@ -10,7 +10,7 @@ function setup(extra = {}) {
   vm.createContext(context);
   for (const file of ['resources/lol/champions.js', 'resources/lolm/champions.js', 'frontend/data.js', 'frontend/draft.js',
     'memory/defaults.js', 'memory/index.js', 'memory/retrieve.js', 'memory/commands.js',
-    'ai-core/index.js', 'skill/rules.js', 'skill/input/game.js', 'skill/input/knowledge.js', 'skill/input/history.js', 'skill/input/prepare.js', 'skill/output/index.js', 'skill/index.js']) {
+    'ai-core/demo.js', 'ai-core/index.js', 'skill/index.js']) {
     vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   }
   return { context, skill: context.window.GameCoachSkill, core: context.window.GameCoachAI, ops: context.window.GameCoachDraft };

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 function setup(generate, options = {}) {
   const ctx = { window: {}, structuredClone, setTimeout, clearTimeout, AbortController, DOMException, performance };
-  vm.createContext(ctx); vm.runInContext(fs.readFileSync(path.join(__dirname, '../ai-core/index.js'), 'utf8'), ctx);
+  vm.createContext(ctx); for (const file of ['demo.js', 'index.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../ai-core', file), 'utf8'), ctx);
   const core = ctx.window.GameCoachAI; core.registerProvider('fake', { generate });
   core.configure({ provider: 'fake', modes: { quick: { retryDelayMs: 0, timeoutMs: 1000, ...options } } }); return core;
 }

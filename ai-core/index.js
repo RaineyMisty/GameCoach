@@ -13,25 +13,7 @@ window.GameCoachAI = (() => {
   let selectedProvider = 'demo';
   const now = () => performance.now();
 
-  providers.set('demo', {
-    isDemo: true,
-    async generate({ input, model, signal, onDelta }) {
-      const last = typeof input === 'string' ? input : [...input].reverse().find(item => item.role === 'user')?.content;
-      const text = typeof last === 'string' ? last : (Array.isArray(last) ? last.filter(part => part.type === 'text' || part.type === 'input_text').map(part => part.text || '').join(' ') : tr("你的输入"));
-      const excerpt = text.slice(0, 60);
-      const content = model === 'demo-instant'
-        ? tr("演示：收到“{0}”。真实 AI 尚未接入。", excerpt)
-        : tr("演示：收到“{0}”。\n\n你可以继续补充信息或追问，同一对话会保留历史。这是占位回复，尚未接入真实 AI。", excerpt);
-      // No artificial thinking delay. A real provider forwards its text deltas here.
-      const characters = Array.from(content);
-      for (let i = 0; i < characters.length; i += 8) {
-        if (signal.aborted) throw abortError();
-        onDelta(characters.slice(i, i + 8).join(''));
-        await Promise.resolve();
-      }
-      return { content };
-    },
-  });
+  providers.set('demo', window.GameCoachDemo);
 
   function registerProvider(name, implementation) {
     if (typeof name !== 'string' || !name.trim() || typeof implementation?.generate !== 'function') throw new TypeError(tr("Provider 必须提供 generate(request)。"));

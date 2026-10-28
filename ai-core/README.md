@@ -6,7 +6,7 @@
 
 `GameCoachAI.call(input, { mode: 'quick', signal, onDelta })` 返回 content、mode、provider、model、isDemo、reasoningEffort、finishReason 和 timings。`registerProvider(name, { isDemo, generate })` 注册适配器；generate 接收 input、model、reasoningEffort、maxOutputTokens、timeoutMs、instructions、signal、onDelta，返回 `{ content, finishReason? }`。最终文本必须和已发送片段一致。
 
-默认 provider 为 demo。gemini.js 注册 Gemini provider；`GameCoachGemini.activate(key)` 启用，`disconnect()` 清除当前页面 Key 并恢复 demo，`isConfigured()` 返回是否已填入 Key。输入校验接受新版 AQ. auth key、旧版 AIza key 及其可打印 ASCII 内容，不限定固定前缀；仅检查基本长度、引号、空白和控制字符，真实性交给官方接口。没有密钥 getter；Key 不进入本地用户、导出文件、URL 或浏览器应用存储。
+默认 provider 为 demo，独立实现在 demo.js；页面和测试须先加载 demo.js，再加载 index.js。gemini.js 注册 Gemini provider；`GameCoachGemini.activate(key)` 启用，`disconnect()` 清除当前页面 Key 并恢复 demo，`isConfigured()` 返回是否已填入 Key。输入校验接受新版 AQ. auth key、旧版 AIza key 及其可打印 ASCII 内容，不限定固定前缀；仅检查基本长度、引号、空白和控制字符，真实性交给官方接口。没有密钥 getter；Key 不进入本地用户、导出文件、URL 或浏览器应用存储。
 
 | 模式 | 模型 | 思考档 | 生成额度 | 超时 |
 | --- | --- | --- | --- | --- |

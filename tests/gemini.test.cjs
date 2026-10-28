@@ -8,7 +8,7 @@ const TEST_KEY = 'test-credential-not-a-real-api-key';
 function setup(fetch) {
   const context = { window: {}, fetch, setTimeout, clearTimeout, AbortController, DOMException, structuredClone, TextDecoder, performance, URL };
   vm.createContext(context);
-  for (const file of ['ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+  for (const file of ['ai-core/demo.js', 'ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
   return { ai: context.window.GameCoachAI, gemini: context.window.GameCoachGemini };
 }
 function event(text, finishReason) { return { candidates: [{ index: 0, content: { parts: text === undefined ? [] : [{ text }] }, ...(finishReason ? { finishReason } : {}) }] }; }
@@ -275,7 +275,7 @@ test('new diagnostics are translated for English UI', async () => {
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(root, 'frontend/translations.js'), 'utf8'), context);
   context.window.GameCoachI18n = { t: (value, ...args) => (context.window.GAMECOACH_ENGLISH[value] || value).replace(/\{(\d+)\}/g, (_, i) => args[Number(i)]) };
-  for (const file of ['ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
+  for (const file of ['ai-core/demo.js', 'ai-core/index.js', 'ai-core/gemini.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context);
   context.window.GameCoachGemini.activate(TEST_KEY);
   await assert.rejects(context.window.GameCoachAI.call('hello'), error => {
     assert.match(error.message, /Authentication failed/); assert.match(error.message, /HTTP 401 \/ UNAUTHENTICATED/);
