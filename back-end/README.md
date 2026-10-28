@@ -13,7 +13,7 @@ FastAPI + SQLite，统一接入 Gemini、DeepSeek、OpenAI（ChatGPT API）、xA
 
 第一次可先 `python -m venv .venv`。打开 <http://127.0.0.1:8000>，在通用 API Key 表单选择厂商并连接。Default / Import 只用于用户数据库，和 API 厂商无关。
 
-用户 Key 通过 HTTPS（本机允许 loopback HTTP）提交一次，按用户和厂商加密保存在 SQLite，不返回浏览器，不进入普通用户备份。留空使用已保存 Key 或服务器默认 Key。同一用户在五家厂商之间共用历史、资料和 training memory。
+用户 Key 通过 HTTPS（本机允许 loopback HTTP）提交，按用户和厂商加密保存在 SQLite，服务器不返回 Key，也不进入普通用户备份。当前网页还会按用户和后端地址在浏览器保存手动填写的 API 配置，刷新自动恢复连接；只有手动提交更新配置。留空使用已保存 Key 或服务器默认 Key。同一用户在五家厂商之间共用历史、资料和 training memory。
 
 **安全配置、恢复、部署包与团队测试操作见 [DEPLOYMENT.md](../DEPLOYMENT.md)。**
 

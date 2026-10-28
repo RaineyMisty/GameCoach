@@ -34,25 +34,29 @@ window.GameCoachBackend = (() => {
   function read(id) {
     if (configurationError) return null;
     if (sessions.has(id)) return sessions.get(id);
-    try {
-      let saved = JSON.parse(sessionStorage.getItem(storageKey(id)) || 'null');
-      // Legacy identities belonged to the page origin. Never send them to a remote API.
-      if (!saved && apiOrigin === pageOrigin) {
-        const oldKey = 'gamecoach-backend-session:' + id;
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(storageKey(id)) || 'null'); } catch {}
+    if (!saved) try { saved = JSON.parse(sessionStorage.getItem(storageKey(id)) || 'null'); } catch {}
+    // 旧版同源身份迁移，仍不将凭证发送到其他后端。
+    if (!saved && apiOrigin === pageOrigin) {
+      const oldKey = 'gamecoach-backend-session:' + id;
+      try {
         const legacy = JSON.parse(sessionStorage.getItem(oldKey) || 'null');
         if (legacy?.token && legacy?.conversations) {
-          saved = { ...legacy, server: apiOrigin };
-          sessionStorage.setItem(storageKey(id), JSON.stringify(saved));
+          saved = {...legacy, server: apiOrigin};
           sessionStorage.removeItem(oldKey);
         }
-      }
-      if (saved?.server === apiOrigin && saved?.token && saved?.conversations) { sessions.set(id, saved); return saved; }
-    } catch {}
+      } catch {}
+    }
+    if (saved?.server === apiOrigin && saved?.token && saved?.conversations) {
+      save(id, saved); return saved;
+    }
     return null;
   }
   function save(id, value) {
     value.server = apiOrigin;
     sessions.set(id, value);
+    try { localStorage.setItem(storageKey(id), JSON.stringify(value)); } catch {}
     try { sessionStorage.setItem(storageKey(id), JSON.stringify(value)); } catch {}
   }
   const diagnostics = {
@@ -166,6 +170,7 @@ window.GameCoachBackend = (() => {
     return userOperation(user.id, async () => {
     const remote = await request('/user-state', { token: session.token });
     session.stateVersion = remote.version; save(user.id, session);
+    if (window.GCStore.current().id !== user.id) throw new Error(tr('用户已切换，请重新连接。'));
     const local = snapshot();
     if (remote.user && window.GCStore.restoreSnapshot) {
       if ((Date.parse(remote.user.updatedAt) || 0) > (Date.parse(local.updatedAt) || 0)) {
@@ -201,8 +206,10 @@ window.GameCoachBackend = (() => {
     if (provider && !providerNames.has(provider)) throw new Error(tr('请选择支持的模型厂商。'));
     if (!provider) provider = (await request('/providers')).default_provider;
     const person = identity(), session = await ensureSession(person, undefined, accessCode);
+    if (window.GCStore.current().id !== person.userId) throw new Error(tr('用户已切换，请重新连接。'));
     await loadState(window.GCStore.current(), session);
     if (apiKey.trim()) await request('/credentials/' + provider, { method: 'PUT', token: session.token, body: { api_key: apiKey.trim() } });
+    if (window.GCStore.current().id !== person.userId) throw new Error(tr('用户已切换，请重新连接。'));
     const result = await testConnection(provider, accessCode);
     return { ...result, provider };
   }
@@ -283,5 +290,6 @@ window.GameCoachBackend = (() => {
     window.addEventListener('online', () => { if (read(window.GCStore.current().id)) syncUser().catch(() => {}); });
   }
   return Object.freeze({ activate, disconnect, connect, testConnection, forgetKey, recoveryFile, restoreAccess, syncUser,
+    getApiOrigin: () => configurationError ? null : apiOrigin,
     getProviderName: () => selectedProvider, isActive: () => window.GameCoachAI.getProviderName() === 'backend' });
 })();

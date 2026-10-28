@@ -1,5 +1,13 @@
 # GameCoach
 
+## 浏览器 API 配置自动恢复
+
+API 面板的厂商、各厂商 API Key、团队访问码、检索选项及自动连接状态保存在当前浏览器 localStorage，按后端地址和本地用户隔离。点击“保存并连接 API”才覆盖配置；刷新自动加载并尝试连接，失败保留已保存内容。手动断开后保留配置并停止下次自动连接。删除 Key 同时清除本地对应值和原有服务器凭证。
+
+会话身份也在浏览器持久保存，重开页面沿用原身份；过期后使用原恢复流程。配置不随普通用户 JSON 或 user-state 同步，不写入公开源码。后端仍负责正式历史、模型请求和服务端凭证，API 地址和协议不变。
+
+实现入口：frontend/api-preferences.js 负责存储，frontend/ai-settings.js 负责恢复与手动更新。
+
 HTML + CSS + JavaScript 的《英雄联盟手游》教练原型。支持本地演示，以及通过 Python 后端接入五家模型厂商；打开网页无需 Node.js、npm 或构建。
 
 本轮变更、commit 命名与真实提交历史，以及标注浏览器 / 服务器归属的详细目录见 [CHANGELOG.md](./CHANGELOG.md)。部署步骤与当前未完成事项见 [DEPLOYMENT.md](./DEPLOYMENT.md)。

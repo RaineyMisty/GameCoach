@@ -29,6 +29,7 @@
   <script src="../skill/quick.js" defer></script>
   <script src="../skill/coach.js" defer></script>
   <script src="../skill/index.js" defer></script>
+  <script src="./api-preferences.js" defer></script>
   <script src="./ai-settings.js" defer></script>
   <script src="./vendor/marked.umd.js" defer></script>
   <script src="./vendor/purify.min.js" defer></script>
@@ -121,12 +122,12 @@
         <p id="ai-connection-status" class="subtle"></p>
         <form id="ai-connection-form" autocomplete="off">
           <label for="api-provider">API 厂商<select id="api-provider"><option value="">服务器默认</option><option value="deepseek">DeepSeek</option><option value="openai">OpenAI (ChatGPT API)</option><option value="grok">xAI (Grok)</option><option value="claude">Anthropic (Claude)</option><option value="gemini">Google Gemini</option></select></label>
-          <label for="api-key">API Key<input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="输入 Key；留空使用已保存或服务器默认 Key"></label>
-          <label for="team-access-code">团队访问码<input id="team-access-code" type="password" autocomplete="off" spellcheck="false" placeholder="本地可留空；团队部署由管理员提供"></label>
-          <button id="connect-api" type="submit" class="primary-button">连接 API</button>
+          <label for="api-key">API Key<input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="输入后保存在此浏览器；留空使用服务器 Key"></label>
+          <label for="team-access-code">团队访问码<input id="team-access-code" type="password" autocomplete="off" spellcheck="false" placeholder="输入后保存在此浏览器，刷新自动加载"></label>
+          <button id="connect-api" type="submit" class="primary-button">保存并连接 API</button>
         </form>
         <p class="fine-print" id="ai-key-help">支持 DeepSeek、OpenAI（ChatGPT API）、xAI（Grok）、Anthropic（Claude）、Google Gemini。</p>
-        <p class="fine-print">网页只连接自己的服务器，由服务器处理厂商请求和 DNS。Key 加密保存在当前用户的服务器记录中，不写入浏览器存储或普通备份；更换厂商共用同一用户的历史和 training memory。</p>
+        <p class="fine-print">厂商、Key、团队访问码和检索选项保存在此浏览器，刷新自动加载并连接；点击“保存并连接 API”才更新配置。不同厂商共用当前用户的历史和记忆。</p>
         <label class="search-setting" hidden>资料检索<select id="search-mode"><option value="off">仅使用本地资料</option></select></label>
         <div class="data-actions"><button id="test-ai" class="text-button" disabled>测试连接</button><button id="disconnect-ai" class="text-button" disabled>断开 API</button><button id="forget-api-key" class="text-button">删除当前厂商的已保存 Key</button></div>
         <p id="ai-feedback" class="form-status" role="status"></p>

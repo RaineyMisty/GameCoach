@@ -6,5 +6,5 @@
 window.GameCoachConfig = Object.freeze({
   apiBaseUrl: 'https://raspberrypi.taila8f0ba.ts.net',
   // 每次测试发布前更新；正式版本设为 '' 即可隐藏显示标识。
-  testBuildLabel: 'skill-split-v3'
+  testBuildLabel: 'api-local-v1'
 });

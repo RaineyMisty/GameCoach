@@ -280,10 +280,11 @@ test('successful team access is remembered across tabs only for the configured b
   const local = new Map();
   const first = setup({local, apiBaseUrl: 'https://api.example'});
   await first.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'team-demo-code'});
-  assert.equal(local.size, 1);
+  assert.equal([...local.keys()].filter(key => key.startsWith('gamecoach-team-access:')).length, 1);
   const reopened = setup({local, apiBaseUrl: 'https://api.example'});
   await reopened.GameCoachBackend.connect({provider: 'deepseek'});
-  assert.equal(reopened.requests.find(item => item.url.endsWith('/api/sessions')).headers['X-GameCoach-Access'], 'team-demo-code');
+  assert.ok(!reopened.requests.some(item => item.url.endsWith('/api/sessions')));
+  assert.equal(reopened.requests.find(item => item.url.includes('/api/connection')).headers.Authorization, 'Bearer token-local-user-1');
   const other = setup({local, apiBaseUrl: 'https://other.example'});
   await other.GameCoachBackend.connect({provider: 'deepseek'});
   assert.equal(other.requests.find(item => item.url.endsWith('/api/sessions')).headers['X-GameCoach-Access'], undefined);
@@ -298,10 +299,29 @@ test('rejected team access is not saved and explicit input overrides an old save
   assert.equal(local.size, 0);
   const accepted = setup({local});
   await accepted.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'first-code'});
+  const sessionKey = [...local.keys()].find(key => key.startsWith('gamecoach-backend-session:'));
+  const expired = JSON.parse(local.get(sessionKey)); expired.expires_at = 0; local.set(sessionKey, JSON.stringify(expired));
   const replaced = setup({local});
   await replaced.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'new-code'});
-  assert.equal(replaced.requests.find(item => item.url === '/api/sessions').headers['X-GameCoach-Access'], 'new-code');
-  assert.deepEqual([...local.values()], ['new-code']);
+  assert.equal(replaced.requests.find(item => item.url === '/api/sessions/restore').headers['X-GameCoach-Access'], 'new-code');
+  assert.deepEqual([...local].filter(([key]) => key.startsWith('gamecoach-team-access:')).map(([, value]) => value), ['new-code']);
   const blocked = setup({blocked: true});
   await blocked.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'manual-code'});
+});
+
+
+test('browser restart preserves server identity and conversations; expired identity restores rather than creating a user', async () => {
+  const local = new Map();
+  const first = setup({local}); await first.GameCoachBackend.connect({provider: 'deepseek', accessCode: 'team-code'});
+  first.GameCoachBackend.activate('deepseek'); await first.GameCoachSkill.quick.run('first', {conversation: first.conversation('chat-one')});
+  const firstChat = first.requests.find(item => item.url === '/api/chat').body.conversation_id;
+  const reopened = setup({local}); await reopened.GameCoachBackend.connect({provider: 'deepseek'});
+  reopened.GameCoachBackend.activate('deepseek'); await reopened.GameCoachSkill.coach.run('next', {conversation: reopened.conversation('chat-one')});
+  assert.ok(!reopened.requests.some(item => item.url === '/api/sessions' || item.url === '/api/conversations'));
+  assert.equal(reopened.requests.find(item => item.url === '/api/chat').body.conversation_id, firstChat);
+  const key = [...local.keys()].find(key => key.startsWith('gamecoach-backend-session:'));
+  const expired = JSON.parse(local.get(key)); expired.expires_at = 0; local.set(key, JSON.stringify(expired));
+  const restored = setup({local}); await restored.GameCoachBackend.connect({provider: 'deepseek'});
+  assert.ok(!restored.requests.some(item => item.url === '/api/sessions'));
+  assert.equal(restored.requests.find(item => item.url === '/api/sessions/restore').headers['X-GameCoach-Access'], 'team-code');
 });

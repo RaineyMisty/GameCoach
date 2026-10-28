@@ -1,6 +1,13 @@
 'use strict';
 // English UI copy. Chinese source strings are stable keys; no user data belongs here.
 window.GAMECOACH_ENGLISH = Object.freeze({
+  "保存并连接 API": "Save and connect API",
+  "输入后保存在此浏览器；留空使用服务器 Key": "Saved in this browser; leave blank to use the saved server key or server default",
+  "输入后保存在此浏览器，刷新自动加载": "Saved in this browser and restored on reload",
+  "正在恢复 API 连接…": "Restoring API connection…",
+  "API 已连接，但浏览器无法保存配置。": "API connected, but this browser could not save the settings.",
+  "用户已切换，请重新连接。": "The user has changed. Please reconnect.",
+  "厂商、Key、团队访问码和检索选项保存在此浏览器，刷新自动加载并连接；点击“保存并连接 API”才更新配置。不同厂商共用当前用户的历史和记忆。": "Provider, key, team access code and search settings are saved in this browser and restored on reload. Only Save and connect API updates them. Providers share the current user’s history and memory.",
   "数据库来源": "Database source",
   "Default 使用当前默认用户数据；Import 导入用户 JSON 中的历史、资料和 training memory，不导入 API Key。": "Default uses the default local user. Import loads history, profile and training memory from user JSON, without API keys.",
   "API 连接": "API connection",
