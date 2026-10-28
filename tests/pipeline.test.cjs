@@ -177,10 +177,30 @@ test('Quick uses its concise prompt in the actual call while preserving user wor
     assert.equal(calls.at(-1).input.at(-1).content, question);
   }
   assert.equal(skill.coach.instructions, coachBefore);
-  assert.equal(skill.coach.instructions, context.window.GameCoachSkillRules.instructions);
+  assert.equal(context.window.GameCoachSkillRules, undefined);
   assert.ok(!skill.quick.instructions.includes('Quick/Coach 是回答档位'));
   context.window.GameCoachI18n = {locale: 'en', t: key => key};
   await skill.run('Which support?', {mode: 'quick'});
   assert.match(calls.at(-1).input[0].content, /two or three seconds/);
+  assert.ok(!/[\u3400-\u9fff]/.test(calls.at(-1).input[0].content));
+});
+
+
+test('Coach sends its independent teaching prompt without changing Quick or the current question', async () => {
+  const {core, skill, context} = setup(); const calls = [];
+  core.registerProvider('capture', {async generate(request) {calls.push(request); return {content: 'answer'};}});
+  core.configure({provider: 'capture'});
+  const quickBefore = skill.quick.instructions;
+  for (const question of ['为什么这局选这个辅助？', '我觉得不行', '啊哈哈']) {
+    await skill.run(question, {mode: 'coach'});
+    assert.equal(calls.at(-1).input[0].content, skill.coach.instructions);
+    assert.equal(calls.at(-1).input.at(-1).content, question);
+    assert.equal(calls.at(-1).model, 'demo-reasoning');
+  }
+  assert.equal(skill.quick.instructions, quickBefore);
+  assert.equal(context.window.GameCoachSkillRules, undefined);
+  context.window.GameCoachI18n = {locale: 'en', t: key => key};
+  await skill.run('Why this pick?', {mode: 'coach'});
+  assert.equal(calls.at(-1).input[0].content, skill.coach.instructions);
   assert.ok(!/[\u3400-\u9fff]/.test(calls.at(-1).input[0].content));
 });

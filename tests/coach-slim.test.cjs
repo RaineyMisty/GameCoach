@@ -31,14 +31,14 @@ test('explicit mechanics requests attach at most two heroes and 1,600 characters
   for(const locale of ['en','zh-CN']) {
     const w=setup(locale), kb=w.GameCoachSkillKnowledge;
     for(const question of ['Corki skills and Cho\'Gath mechanics with Ahri','库奇、科加斯、阿狸的技能机制是什么？']) {
-      const result=kb.collect([{role:'user',content:question}],{draft:w.draft},{mode:'coach'});
+      const result=kb.collect([{role:'user',content:question}],{draft:w.draft},{detail:'excerpt',requireSkillsQuestion:true,maxCharacters:1600,maxHeroes:2,includeLineup:false,includeExpansionAnswer:false});
       assert.ok(result.sources.length>0 && result.sources.length<=2); assert.ok(result.text.length<=1600);
     }
-    const q=kb.collect([{role:'user',content:'Corki Q mechanics'}],{draft:w.draft},{mode:'coach'});
+    const q=kb.collect([{role:'user',content:'Corki Q mechanics'}],{draft:w.draft},{detail:'excerpt',requireSkillsQuestion:true,maxCharacters:1600,maxHeroes:2,includeLineup:false,includeExpansionAnswer:false});
     assert.match(q.text,/Q /); assert.ok(!q.text.includes('W ')); assert.ok(!q.text.includes('R '));
-    const passive=kb.collect([{role:'user',content:'库奇的被动机制是什么？'}],{draft:w.draft},{mode:'coach'});
+    const passive=kb.collect([{role:'user',content:'库奇的被动机制是什么？'}],{draft:w.draft},{detail:'excerpt',requireSkillsQuestion:true,maxCharacters:1600,maxHeroes:2,includeLineup:false,includeExpansionAnswer:false});
     assert.equal(passive.sources.length,1); assert.match(passive.text,/被动/); assert.ok(!passive.text.includes('Q '));
-    assert.equal(kb.collect([{role:'user',content:'这套阵容技能如何配合'}],{draft:w.draft},{mode:'coach'}).sources.length,0);
+    assert.equal(kb.collect([{role:'user',content:'这套阵容技能如何配合'}],{draft:w.draft},{detail:'excerpt',requireSkillsQuestion:true,maxCharacters:1600,maxHeroes:2,includeLineup:false,includeExpansionAnswer:false}).sources.length,0);
     assert.equal(kb.collect([{role:'user',content:'Analyze this lineup'}],{draft:w.draft}).sources.length,10);
   }
 });
@@ -73,14 +73,20 @@ test('Coach memory is smaller and used-memory/source metadata exactly describe a
   const result=select(memory,'Which support should I pick for this lineup?',{maxEntries:3,maxCharacters:600});
   assert.ok(result.entries.length<=3);assert.ok(result.characters<850);
 });
-test('bilingual rules are paired, short, selected once, and Quick history policy remains unchanged',()=>{
-  const w=setup();assert.equal(new Set(w.GameCoachSkillRules.rules.map(rule=>rule.id)).size,w.GameCoachSkillRules.rules.length);
-  assert.ok(w.GameCoachSkillRules.rules.every(rule=>rule.en && rule.zh));
-  const en=w.GameCoachSkillRules.instructions;assert.match(en,/Response language: English/);assert.ok(!/[\u3400-\u9fff]/.test(en));assert.ok(en.length<1600);
-  w.GameCoachI18n.setLocale('zh-CN');const zh=w.GameCoachSkillRules.instructions;assert.match(zh,/回复语言：简体中文/);assert.ok(zh.length<700);
-  const rows=history(w.draft);rows.push({role:'user',content:'current'});const request=w.GameCoachSkillInput.build(rows,{draft:w.draft},{mode:'quick'});
+test('independent bilingual mode prompts select one language and Quick history remains intact',()=>{
+  const w=setup();
+  assert.equal(w.GameCoachSkillRules, undefined);
+  for (const mode of ['quick','coach']) {
+    const en=w.GameCoachSkill[mode].instructions;
+    assert.match(en,/Response language: English/);assert.ok(!/[\u3400-\u9fff]/.test(en));
+  }
+  w.GameCoachI18n.setLocale('zh-CN');
+  for (const mode of ['quick','coach']) assert.match(w.GameCoachSkill[mode].instructions,/回复语言：简体中文/);
+  const rows=history(w.draft);rows.push({role:'user',content:'current'});
+  const request=w.GameCoachSkillInput.build(rows,{draft:w.draft},{mode:'quick'});
   assert.equal(request.history.omitted,0);assert.equal(request.messages.filter(row=>row.role==='assistant').length,10);
 });
+
 test('Coach sends a smaller actual Gemini JSON request without changing the model, thinking or output limit',async()=>{
   const w=setup();let body;
   w.ctx.fetch=async(url,options)=>{body=JSON.parse(options.body);return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'answer'}]},finishReason:'STOP'}]}),{headers:{'content-type':'application/json'}});};

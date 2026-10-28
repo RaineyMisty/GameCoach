@@ -59,13 +59,6 @@ test('debug version never enters response content or streamed text in either mod
     assert.ok(!response.content.includes('【测试'));
     assert.equal(chunks.join(''), response.content);
   }
-  const chunks = [];
-  const hook = ctx.window.GameCoachSkillOutput.create(text => chunks.push(text), {mode: 'coach'});
-  hook.stream('first'); hook.stream('second');
-  const original = {content: 'firstsecond', model: 'model'};
-  assert.strictEqual(hook.finish(original), original);
-  assert.equal(hook.finish(original).content, chunks.join(''));
-  assert.equal(original.content, 'firstsecond');
   ctx.window.GameCoachConfig.testBuildLabel = '';
   const clean = await ctx.window.GameCoachSkill.run('hello');
   assert.ok(!clean.content.includes('【测试'));

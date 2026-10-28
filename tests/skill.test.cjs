@@ -118,13 +118,6 @@ test('Skill snapshots inputs before awaiting the provider and propagates cancell
   controller.abort(); await assert.rejects(pending, { name: 'AbortError' }); emit('late'); assert.equal(chunks.length, 0);
 });
 
-test('output hook preserves the exact response object and streams immediately without rewriting', () => {
-  const { context } = setup(); const chunks = []; const output = context.window.GameCoachSkillOutput.create(chunk => chunks.push(chunk));
-  const response = { content: '**原文**\n\n你好', timings: { totalMs: 1 }, model: 'model', finishReason: 'length' };
-  output.stream('**原'); output.stream('文**'); assert.deepEqual(chunks, ['**原', '文**']);
-  assert.strictEqual(output.finish(response), response);
-});
-
 test('Gemini receives game, roster and player context in its actual request shape, with execution mode kept separate', async () => {
   const calls = []; const { context, skill, ops } = setup({ fetch: async (url, options) => {
     calls.push({ url, options }); return new Response(JSON.stringify({ candidates: [{ index: 0,

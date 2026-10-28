@@ -24,10 +24,10 @@ window.GameCoachSkillQuick = (() => {
     get instructions() { return instructions[window.GameCoachI18n?.locale === 'en' ? 'en' : 'zh']; },
     build(input, context = {}) {
       const original = window.GameCoachSkillInput.normalize(input);
-      const history = window.GameCoachSkillHistory.select(original, { mode: 'quick', expansion: context.expansion });
+      const history = window.GameCoachSkillHistory.select(original, { expansion: context.expansion });
       const draft = context.draft ?? history.messages.at(-1).draft;
       const memory = window.GameCoachMemoryRetrieval.select(context.memory, history.messages, context);
-      const knowledge = window.GameCoachSkillKnowledge.collect(history.messages, { ...context, draft }, { mode: 'quick' });
+      const knowledge = window.GameCoachSkillKnowledge.collect(history.messages, { ...context, draft }, { detail: 'full', maxCharacters: 4800 });
       return window.GameCoachSkillInput.compose(history, context, draft, memory, knowledge,
         { instructions: quick.instructions, compactReferences: false });
     },
