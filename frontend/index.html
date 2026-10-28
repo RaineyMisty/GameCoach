@@ -94,14 +94,9 @@
       <p id="status" class="status" role="status"></p>
     </div>
   </main>
-  <aside id="draft-summary" class="draft-summary" aria-label="阵容概览">
-    <div class="summary-toolbar">
-      <button id="summary-drag" type="button" class="summary-drag" aria-label="拖动阵容窗口，方向键也可移动" title="拖动阵容窗口，方向键也可移动">⠿ <span>阵容</span></button>
-      <div class="summary-controls">
-        <button id="summary-pin" type="button" aria-pressed="false">固定</button>
-        <button id="summary-toggle" type="button" aria-expanded="true" aria-controls="summary-content">收起</button>
-      </div>
-    </div>
+  <aside id="draft-summary" class="draft-summary" aria-label="阵容概览" tabindex="0">
+    <button id="summary-pin" type="button" class="summary-pin" aria-label="固定当前位置" title="固定当前位置" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path id="summary-lock-shackle" d="M8 11V7a4 4 0 0 1 8 0v4"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg></button>
+    <button id="summary-toggle" type="button" class="summary-edge-toggle" aria-label="收起" title="收起" aria-expanded="true" aria-controls="summary-content">›</button>
     <div id="summary-content" class="summary-content">
     <div class="summary-team"><div id="summary-bans-ally" class="summary-bans" role="group" aria-label="蓝方禁用英雄" hidden></div><div id="summary-ally" class="summary-slots" role="group" aria-label="蓝方阵容"></div></div>
     <div class="summary-team"><div id="summary-bans-enemy" class="summary-bans" role="group" aria-label="红方禁用英雄" hidden></div><div id="summary-enemy" class="summary-slots" role="group" aria-label="红方阵容"></div></div>
